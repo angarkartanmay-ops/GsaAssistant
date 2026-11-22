@@ -64,11 +64,16 @@ function Bubble({ m }: { m: Msg }) {
 }
 
 export function Conversation({ h, onSuggest }: { h: Havoc; onSuggest: (t: string) => void }) {
-  const end = useRef<HTMLDivElement>(null);
-  useEffect(() => end.current?.scrollIntoView({ behavior: "smooth", block: "end" }), [h.messages]);
+  const box = useRef<HTMLDivElement>(null);
+  // Scroll only this panel (scrollIntoView would also scroll the page on phones). Braces matter:
+  // an effect must return nothing or a cleanup function.
+  useEffect(() => {
+    const el = box.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [h.messages, h.pending]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-4 pt-5 sm:px-7">
+    <div ref={box} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-4 pt-5 sm:px-7">
       {!h.historyLoaded ? (
         <div className="space-y-5" aria-label="Loading conversation">
           {[72, 48, 64].map((w, i) => (
@@ -138,7 +143,6 @@ export function Conversation({ h, onSuggest }: { h: Havoc; onSuggest: (t: string
           </motion.div>
         )}
       </AnimatePresence>
-      <div ref={end} />
     </div>
   );
 }

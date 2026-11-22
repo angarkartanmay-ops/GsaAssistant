@@ -152,7 +152,7 @@ export function Composer({ h }: { h: Havoc }) {
             }
             if (e.key === "Escape") h.stop();
           }}
-          placeholder={files.length ? "Where should these go?" : "Ask, or tell me what to post..."}
+          placeholder={files.length ? "Where should these go?" : "Message Havoc"}
           aria-label="Message"
           className="field min-h-11 flex-1 resize-none py-2.5 leading-6"
         />

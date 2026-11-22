@@ -43,6 +43,7 @@ export function useHavoc() {
     switch (ev.type) {
       case "hello": {
         setRemote(Boolean(ev.remote));
+        if (ev.state) setState(ev.state as CoreState);
         setGreeting(String(ev.greeting || ""));
         setPending((ev.pending as Pending) || null);
         const hist = (ev.history as { role: string; content: string; channel: string }[]) || [];
@@ -144,7 +145,6 @@ export function useHavoc() {
       sock.onopen = () => {
         delay = 800;
         setConnected(true);
-        setState("idle");
       };
       sock.onmessage = (e) => handle(JSON.parse(e.data));
       sock.onclose = (e) => {

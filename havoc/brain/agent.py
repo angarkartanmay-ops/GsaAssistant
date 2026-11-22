@@ -110,6 +110,8 @@ class Agent:
                 except Exception:  # noqa: BLE001
                     log.debug("emit failed", exc_info=True)
 
+        # Saved straight away (not after the reply) so a device opened mid-turn already sees it.
+        self.rt.memory.add_message("user", text, channel)
         async with self.lock:
             await _emit({"type": "state", "state": "thinking"})
             try:
@@ -121,7 +123,6 @@ class Agent:
                 log.exception("agent failure")
                 reply = f"Something in me broke: {type(e).__name__}: {e}. The log has the details."
             reply = ensure_address(light_clean(reply), self.rt.cfg.assistant.address_as)
-            self.rt.memory.add_message("user", text, channel)
             self.rt.memory.add_message("assistant", reply, channel)
             await _emit({"type": "final", "text": reply, "pending": self._pending_view()})
             await _emit({"type": "state", "state": "idle"})

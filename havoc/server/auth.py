@@ -107,19 +107,25 @@ class Gate:
 
 
 LOGIN_HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>H.A.V.O.C.</title>
-<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#0b0d12">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>H.A.V.O.C.</title>
+<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#0c0d10">
 <style>
-:root{{--bg:#0b0d12;--text:#e8ecf3;--muted:#8a93a6;--accent:#4fd1ff;--err:#ff6b6b}}
-*{{box-sizing:border-box}}body{{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);
-color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:16px}}
-form{{width:100%;max-width:340px;display:flex;flex-direction:column;gap:14px;text-align:center}}
-h1{{font:700 20px/1 ui-monospace,Consolas,monospace;letter-spacing:.35em;color:var(--accent);margin:0 0 4px}}
-p{{color:var(--muted);margin:0}}input{{font:600 24px ui-monospace,monospace;letter-spacing:.4em;text-align:center;
-padding:14px;border-radius:12px;border:1px solid #2a3040;background:#121621;color:var(--text);outline:none}}
-input:focus{{border-color:var(--accent)}}button{{padding:14px;border:0;border-radius:12px;background:var(--accent);
-color:#04131a;font:700 16px system-ui}}.err{{color:var(--err);min-height:1.5em}}
+:root{{--bg:#0c0d10;--panel:#121419;--line:rgba(255,255,255,.07);--text:#e8eaef;--muted:#8a909c;--accent:#5cb4d9;--bad:#e06a70}}
+*{{box-sizing:border-box}}body{{margin:0;min-height:100dvh;display:grid;place-items:center;padding:16px;
+background:radial-gradient(70% 60% at 30% 35%,rgba(92,180,217,.08),transparent 70%),var(--bg);
+color:var(--text);font:16px/1.5 "Geist Variable",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}}
+form{{width:100%;max-width:340px;display:flex;flex-direction:column;gap:14px}}
+.brand{{font:600 15px/1 ui-monospace,"Geist Mono Variable",Consolas,monospace;letter-spacing:.34em}}
+p{{color:var(--muted);margin:0 0 6px}}
+label{{font-size:13px;color:#b7bcc7}}
+input{{font:600 22px ui-monospace,monospace;letter-spacing:.4em;padding:13px 14px;border-radius:12px;
+border:1px solid var(--line);background:var(--panel);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s}}
+input:focus{{border-color:var(--accent);box-shadow:0 0 0 3px rgba(92,180,217,.18)}}
+button{{padding:13px;border:0;border-radius:12px;background:var(--accent);color:#0c0d10;font:600 15px inherit;cursor:pointer;
+transition:transform .2s cubic-bezier(.16,1,.3,1)}}button:active{{transform:scale(.98)}}
+.err{{color:var(--bad);min-height:1.4em;font-size:14px}}
 </style></head><body><form method="post" action="/login">
-<h1>H.A.V.O.C.</h1><p>Enter your PIN, Sir.</p>
-<input name="pin" type="password" inputmode="numeric" autocomplete="current-password" autofocus required>
-<button type="submit">Unlock</button><div class="err">{error}</div></form></body></html>"""
+<div class="brand">H.A.V.O.C.</div><p>Back so soon, Sir? PIN, please.</p>
+<label for="pin">PIN</label>
+<input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" autofocus required>
+<div class="err">{error}</div><button type="submit">Unlock</button></form></body></html>"""

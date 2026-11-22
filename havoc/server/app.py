@@ -268,6 +268,7 @@ def create_app(rt: Any, gate: Optional[Gate] = None, on_restart: Optional[Any] =
             "pending": rt.agent._pending_view(),
             # The shared brain: whatever device you open, you see the same conversation.
             "history": rt.memory.history(40),
+            "state": "thinking" if rt.agent.lock.locked() else (rt.voice.state if rt.voice else "idle"),
         })
 
         async def pump() -> None:

@@ -19,6 +19,7 @@ from email.message import EmailMessage
 from email.policy import default as default_policy
 from pathlib import Path
 from typing import Optional
+from urllib.parse import quote, urlencode
 
 from ..config import GmailCfg
 
@@ -242,11 +243,26 @@ class GmailClient:
         _attach(msg, attachments)
         return msg
 
+    def compose_url(self, to: str, subject: str, body: str, cc: str = "", bcc: str = "") -> str:
+        """A Gmail link that opens a ready-to-send draft in the sending account. No login needed
+        by HAVOC: you're already signed in to Gmail, you just press Send."""
+        params = {"view": "cm", "fs": "1", "to": to, "su": subject, "body": body}
+        if cc:
+            params["cc"] = cc
+        if bcc:
+            params["bcc"] = bcc
+        account = quote(self.sender.address or "0")
+        return f"https://mail.google.com/mail/?authuser={account}&" + urlencode(params, quote_via=quote)
+
     def build_new(self, to: str, subject: str, body: str,
-                  attachments: Optional[list[Path]] = None) -> EmailMessage:
+                  attachments: Optional[list[Path]] = None, cc: str = "", bcc: str = "") -> EmailMessage:
         msg = EmailMessage()
         msg["From"] = self._from()
         msg["To"] = to
+        if cc:
+            msg["Cc"] = cc
+        if bcc:
+            msg["Bcc"] = bcc  # smtplib.send_message delivers to Bcc and strips the header
         msg["Subject"] = subject
         msg["Date"] = email.utils.formatdate(localtime=True)
         msg.set_content(body)

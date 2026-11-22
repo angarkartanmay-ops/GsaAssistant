@@ -134,6 +134,7 @@ class Agent:
         return {"tool": self.pending.tool, "preview": self.pending.preview}
 
     async def _respond(self, text: str, channel: str, emit: Emit) -> str:
+        self.rt.current_channel = channel  # tools use it, e.g. only open a browser if you're at the PC
         note: Optional[str] = None
         if self.pending:
             p = self.pending

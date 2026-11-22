@@ -115,11 +115,50 @@ async def draft_reply(rt: Any, mail_id: str, instructions: str) -> str:
         return f"No mail with id {mail_id}."
     prompt = (f"Write the body of a reply email from {rt.cfg.assistant.user_name}.\nWhat to say: {instructions}\n\n"
               f"Original from {m.sender}, subject '{m.subject}':\n{m.body[:2500]}\n\n"
-              f"Sign off with just the first name '{rt.cfg.assistant.user_name}'.")
+              "End with a short sign-off line; the signature is added separately.")
     body = await rt.llm.complete(prompt, system=draft_rules(rt.cfg), temperature=0.5)
-    body = await polish_for_others(rt, body)
+    body = with_signature(rt, await polish_for_others(rt, body))
+    if draft_mode(rt):
+        to = email.utils.parseaddr(m.sender)[1] or m.sender
+        subject = m.subject if m.subject.lower().startswith("re:") else f"Re: {m.subject}"
+        return open_draft(rt, to, subject, body)
     await blocking(rt.gmail.save_draft, rt.gmail.build_reply(m, body))
     return f"Draft saved in Gmail Drafts, replying to '{m.subject}':\n\n{body}"
+
+
+def draft_mode(rt: Any) -> bool:
+    return rt.cfg.gmail.send_mode == "draft"
+
+
+def with_signature(rt: Any, body: str) -> str:
+    sig = rt.cfg.gmail.signature.strip()
+    if not sig or body.rstrip().endswith(sig.splitlines()[-1].strip()):
+        return body
+    return f"{body.rstrip()}\n\n{sig}"
+
+
+LOCAL_CHANNELS = {"text", "voice"}
+
+
+def open_draft(rt: Any, to: str, subject: str, body: str, cc: str = "", bcc: str = "",
+               files: Optional[list] = None) -> str:
+    """Draft mode: open a ready-to-send Gmail compose window (on the PC if you're at it) and return the link."""
+    url = rt.gmail.compose_url(to, subject, body, cc, bcc)
+    opened = ""
+    if getattr(rt, "current_channel", "text") in LOCAL_CHANNELS:
+        import webbrowser
+        webbrowser.open(url)
+        opened = " It's open in your browser."
+    account = rt.gmail.sender.address or "your Gmail"
+    lines = [f"Draft ready in {account}.{opened} Review it and press Send: {url}"]
+    if len(url) > 7500:
+        lines.append("It's long, so Gmail may cut the body off; the full text is below to paste in.")
+    if files:
+        lines.append("Attach these yourself in Gmail (links can't carry files): "
+                     + ", ".join(f.name for f in files) + f" (in {files[0].parent}).")
+    recipients = ", ".join(x for x in (f"to {to}" if to else "", f"cc {cc}" if cc else "", f"bcc {bcc}" if bcc else "") if x)
+    lines.append(f"\n{recipients} | Subject: {subject}\n\n{body}")
+    return "\n".join(lines)
 
 
 def _mail_preview(rt: Any, mail_id: str = "", body: str = "", to: str = "", subject: str = "") -> str:
@@ -134,9 +173,9 @@ def _mail_preview(rt: Any, mail_id: str = "", body: str = "", to: str = "", subj
 ATTACH_HELP = "Inbox file names to attach (from 'Attached files'), or 'latest'. Optional."
 
 
-@tool("send_reply", "Send a reply to an email from the user's official address. The body is exactly what gets sent.",
+@tool("send_reply", "Reply to an email from the user's official address (in draft mode: opens it in Gmail ready to send).",
       params={"mail_id": "Email id", "body": "Full reply text, in the user's voice", "attachments": ATTACH_HELP},
-      confirm=lambda rt, **_: rt.cfg.safety.confirm_email_send,
+      confirm=lambda rt, **_: rt.cfg.safety.confirm_email_send and not draft_mode(rt),
       preview=lambda rt, mail_id="", body="", **_: _mail_preview(rt, mail_id=mail_id, body=body),
       prepare=lambda rt, args: prepare_message(rt, args, "body"), group="mail")
 async def send_reply(rt: Any, mail_id: str, body: str, attachments: Optional[list[str]] = None) -> str:
@@ -144,19 +183,30 @@ async def send_reply(rt: Any, mail_id: str, body: str, attachments: Optional[lis
     m = await blocking(rt.gmail.get, mail_id)
     if not m:
         return f"No mail with id {mail_id}."
+    body = with_signature(rt, body)
+    if draft_mode(rt):
+        to = email.utils.parseaddr(m.sender)[1] or m.sender
+        subject = m.subject if m.subject.lower().startswith("re:") else f"Re: {m.subject}"
+        return open_draft(rt, to, subject, body, files=files)
     await blocking(rt.gmail.send, rt.gmail.build_reply(m, body, files))
     return f"Reply sent to {m.sender} from {rt.gmail.sender.address}{describe_attachments(files)}."
 
 
-@tool("send_email", "Send a new email from the user's official address.",
+@tool("send_email", "Email from the user's official address (in draft mode: opens it in Gmail ready to send). "
+      "For mails to many students, put the addresses in bcc so nobody sees everyone else's address.",
       params={"to": "Recipient address(es), comma-separated", "subject": "Subject line",
-              "body": "Full text, in the user's voice", "attachments": ATTACH_HELP},
-      confirm=lambda rt, **_: rt.cfg.safety.confirm_email_send,
+              "body": "Full text, in the user's voice", "cc": "Cc addresses, optional",
+              "bcc": "Bcc addresses, optional (use for large groups)", "attachments": ATTACH_HELP},
+      confirm=lambda rt, **_: rt.cfg.safety.confirm_email_send and not draft_mode(rt),
       preview=lambda rt, to="", subject="", body="", **_: _mail_preview(rt, to=to, subject=subject, body=body),
       prepare=lambda rt, args: prepare_message(rt, args, "body"), group="mail")
-async def send_email(rt: Any, to: str, subject: str, body: str, attachments: Optional[list[str]] = None) -> str:
-    if "@" not in to:
+async def send_email(rt: Any, to: str, subject: str, body: str, cc: str = "", bcc: str = "",
+                     attachments: Optional[list[str]] = None) -> str:
+    if "@" not in to + bcc:
         return f"'{to}' isn't an email address."
     files = resolve_attachments(attachments)
-    await blocking(rt.gmail.send, rt.gmail.build_new(to, subject, body, files))
-    return f"Sent to {to} from {rt.gmail.sender.address}{describe_attachments(files)}."
+    body = with_signature(rt, body)
+    if draft_mode(rt):
+        return open_draft(rt, to, subject, body, cc, bcc, files)
+    await blocking(rt.gmail.send, rt.gmail.build_new(to, subject, body, files, cc, bcc))
+    return f"Sent to {to or bcc} from {rt.gmail.sender.address}{describe_attachments(files)}."

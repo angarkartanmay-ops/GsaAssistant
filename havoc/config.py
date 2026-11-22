@@ -79,8 +79,8 @@ class GmailCfg(BaseModel):
     smtp_host: str = "smtp.gmail.com"
     mailbox: str = '"[Gmail]/All Mail"'
     gsa_query: str = (
-        '("Student Ambassador" OR "Gemini Student Ambassador" OR GSA OR from:google.com)'
-        " -category:promotions"
+        '("Student Ambassador" OR "Gemini Student Ambassador" OR GSA OR from:google.com'
+        " OR from:geministudentambassador.com) -category:promotions"
     )
     max_results: int = 25
     auth: str = "app_password"  # app_password | oauth (for college/Workspace accounts that block App Passwords)
@@ -92,6 +92,10 @@ class GmailCfg(BaseModel):
     official_app_password: str = ""  # filled from OFFICIAL_MAIL_APP_PASSWORD
     official_auth: str = "app_password"
     sender_name: str = ""  # display name on sent mail, e.g. "Tanmay Angarkar"
+    # "draft": HAVOC writes the email and opens it ready-to-send in Gmail (your account, no password
+    # needed); you press Send. "smtp": HAVOC sends it itself (needs an App Password or OAuth).
+    send_mode: str = "smtp"
+    signature: str = ""  # appended to emails, e.g. "Tanmay Angarkar\nGoogle Student Ambassador"
 
 
 class DashboardCfg(BaseModel):
@@ -110,6 +114,7 @@ class DiscordCfg(BaseModel):
     token: str = ""  # filled from DISCORD_BOT_TOKEN
     guild_id: int = 0
     owner_user_id: int = 0  # your Discord user id: DMs from you go straight to Havoc
+    owner_username: str = ""  # or just your username; HAVOC locks onto its ID on your first DM
     # Posts go through a channel webhook so they show your name and avatar instead of the bot's.
     post_as_webhook: bool = True
     post_as_name: str = ""  # empty = assistant.user_name

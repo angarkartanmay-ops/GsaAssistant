@@ -31,8 +31,10 @@ ENV_PLAIN = {
 CONFIG_FIELDS: dict[str, type] = {
     "assistant.user_name": str, "assistant.address_as": str, "assistant.sass": int,
     "gmail.sender_name": str, "gmail.official_auth": str, "gmail.gsa_query": str,
+    "gmail.send_mode": str, "gmail.signature": str,
     "dashboard.url": str,
-    "discord.guild_id": int, "discord.owner_user_id": int, "discord.default_channel": str,
+    "discord.guild_id": int, "discord.owner_user_id": int, "discord.owner_username": str,
+    "discord.default_channel": str,
     "discord.post_as_name": str,
     "whatsapp.group_name": str,
     "voice.tts_voice": str, "voice.enabled": bool,
@@ -141,6 +143,8 @@ def apply(payload: dict) -> list[str]:
                 raise SettingsError("Sass goes from 0 to 3.")
             if field == "gmail.official_auth" and new not in ("app_password", "oauth"):
                 raise SettingsError("Official mail sign-in must be app_password or oauth.")
+            if field == "gmail.send_mode" and new not in ("draft", "smtp"):
+                raise SettingsError("Sending must be draft or smtp.")
             if _get(data, field) != new:
                 _set(data, field, new)
                 changed.append(field)

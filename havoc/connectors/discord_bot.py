@@ -14,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Optional
 
+from .. import config as config_mod
 from ..config import DiscordCfg, inbox_dir
 
 log = logging.getLogger("havoc.discord")
@@ -81,14 +82,14 @@ class DiscordConnector:
             if message.author == client.user or message.webhook_id is not None:
                 return  # our own posts (bot or "as you" webhook) never trigger alerts
             if message.guild is None:
-                if self.cfg.owner_user_id and message.author.id == self.cfg.owner_user_id and self.on_owner_dm:
+                if self.on_owner_dm and self.is_owner(message.author):
                     await self._handle_owner_dm(message)
                 return
             if self.cfg.guild_id and message.guild.id != self.cfg.guild_id:
                 return
             low = message.content.lower()
             mentioned = client.user in message.mentions or (
-                self.cfg.owner_user_id and any(u.id == self.cfg.owner_user_id for u in message.mentions))
+                self.owner_id and any(u.id == self.owner_id for u in message.mentions))
             if self.on_alert and (mentioned or any(k in low for k in self.cfg.alert_keywords)):
                 await self.on_alert(_to_dmsg(message, mentioned))
 
@@ -100,6 +101,34 @@ class DiscordConnector:
                 log.error("Discord stopped: %s", self.error)
 
         self._task = asyncio.create_task(runner())
+
+    # ---------- who is the owner ----------
+    @property
+    def _owner_file(self) -> Path:
+        return config_mod.DATA_DIR / "discord_owner_id"
+
+    @property
+    def owner_id(self) -> int:
+        """Your numeric Discord ID: from config, or locked in the first time your username DMs."""
+        if self.cfg.owner_user_id:
+            return self.cfg.owner_user_id
+        try:
+            return int(self._owner_file.read_text().strip())
+        except (OSError, ValueError):
+            return 0
+
+    def is_owner(self, user) -> bool:  # noqa: ANN001
+        if self.owner_id:
+            return user.id == self.owner_id
+        # No ID yet: match the username once, then lock onto that account's ID for good, so a
+        # different account that later takes the same username can't pose as you.
+        wanted = self.cfg.owner_username.strip().lstrip("@").lower()
+        if wanted and str(getattr(user, "name", "")).lower() == wanted:
+            self._owner_file.parent.mkdir(parents=True, exist_ok=True)
+            self._owner_file.write_text(str(user.id))
+            log.info("Discord owner locked to %s (%s)", user.name, user.id)
+            return True
+        return False
 
     async def _handle_owner_dm(self, message) -> None:  # noqa: ANN001
         """Your phone line: text, photos/files (saved to the inbox) and voice notes."""
@@ -151,7 +180,15 @@ class DiscordConnector:
 
     async def _channel(self, name: str):
         g = await self._guild()
-        name = (name or self.cfg.default_channel).lstrip("#").lower().strip()
+        name = (name or self.cfg.default_channel).strip()
+        # Accept a channel ID, a <#mention> or a discord.com/channels/<server>/<channel> link too.
+        m = re.search(r"(\d{15,22})\D*$", name)
+        if m and (name.isdigit() or "discord.com/channels/" in name or name.startswith("<#")):
+            ch = g.get_channel(int(m.group(1)))
+            if ch is not None and hasattr(ch, "send"):
+                return ch
+            raise DiscordError(f"Channel {m.group(1)} isn't in the server or the bot can't see it.")
+        name = name.lstrip("#").lower()
         chans = g.text_channels
         for c in chans:
             if c.name.lower() == name:
@@ -190,9 +227,9 @@ class DiscordConnector:
     async def _avatar(self) -> Optional[str]:
         if self.cfg.post_as_avatar:
             return self.cfg.post_as_avatar
-        if self._avatar_url is None and self.cfg.owner_user_id:
+        if self._avatar_url is None and self.owner_id:
             try:
-                user = await self.client.fetch_user(self.cfg.owner_user_id)
+                user = await self.client.fetch_user(self.owner_id)
                 self._avatar_url = str(user.display_avatar.url)
             except Exception:  # noqa: BLE001
                 self._avatar_url = ""

@@ -125,9 +125,9 @@ Connections can't be opened from the phone, so a lost phone can't read or swap y
 | Account | What to do |
 |---|---|
 | Inbox (reads GSA mail) | Address + a Gmail App Password (needs 2-Step Verification) |
-| Official address (sends) | Address + App Password, or **Sign in with Google** for college/Workspace accounts |
+| Official address (sends) | Pick **Open as Gmail draft** (no password: HAVOC writes the mail and opens it in that account, you press Send), or **Send directly** with an App Password / Sign in with Google |
 | GSA dashboard | Paste the URL, press **Sign in on this PC**, log in once |
-| Discord | Bot token, server ID, your user ID; then use the **Invite the bot** link it shows |
+| Discord | Bot token, server ID, your username (or ID); default channel as a name, ID or channel link; then use the **Invite the bot** link it shows |
 | WhatsApp | Scan the QR in Connections from WhatsApp → Linked devices |
 | Phone | PIN + **Set up phone access** |
 

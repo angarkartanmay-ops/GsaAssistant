@@ -64,6 +64,7 @@ class Runtime:
         self.voice = None  # VoiceLoop, created in start_voice()
         self.speak_replies = True
         self.loop: Optional[asyncio.AbstractEventLoop] = None
+        self.current_channel = "text"
         self.post_log: list[str] = []  # "discord"/"whatsapp" per post, for undo_last_post
         self._stt = None  # Whisper for phone voice notes (shares the voice loop's model when running)
         self._tts = None

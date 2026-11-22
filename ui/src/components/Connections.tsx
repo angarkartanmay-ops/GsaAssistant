@@ -40,6 +40,18 @@ function Field({ id, label, hint, value, onChange, placeholder, error }: {
   );
 }
 
+function TextArea({ id, label, hint, value, onChange, placeholder }: {
+  id: string; label: string; hint?: React.ReactNode; value: string; onChange: (v: string) => void; placeholder?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <label htmlFor={id} className="text-[13px] font-medium text-fog-300">{label}</label>
+      <textarea id={id} value={value} rows={3} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="field resize-y leading-6" />
+      {hint && <p className="text-[12.5px] leading-relaxed text-fog-500">{hint}</p>}
+    </div>
+  );
+}
+
 function SecretField({ id, label, hint, isSet, value, onChange, error }: {
   id: string; label: string; hint?: React.ReactNode; isSet: boolean; value: string | null | undefined; onChange: (v: string | null) => void; error?: string | null;
 }) {
@@ -267,22 +279,35 @@ export function Connections({ onClose }: { onClose: () => void }) {
                 <SecretField id="gmailpw" label="Inbox App Password" isSet={!!s["gmail.app_password"]} value={secrets["gmail.app_password"]} onChange={setSecret("gmail.app_password")} error={errors["gmail.app_password"]} />
                 <Field id="official" label="Official address (sends)" value={f("gmail.official_address")} onChange={set("gmail.official_address")} placeholder="Leave empty to send from the inbox" error={errors["gmail.official_address"]} />
                 <Field id="sender" label="Name on sent mail" value={f("gmail.sender_name")} onChange={set("gmail.sender_name")} placeholder="Tanmay ..." />
-                {f("gmail.official_address") && (
-                  <>
-                    <Segmented label="Official account sign-in" value={f("gmail.official_auth") || "app_password"} onChange={set("gmail.official_auth")} options={[{ id: "app_password", label: "App Password" }, { id: "oauth", label: "Sign in with Google" }]} />
-                    {f("gmail.official_auth") === "oauth" ? (
-                      <div className="flex flex-col gap-2 sm:col-span-2">
-                        <p className="text-[12.5px] leading-relaxed text-fog-500">
-                          {view.oauth_client_present ? "OAuth client found." : "First put your OAuth client JSON at data/google_oauth_client.json (README, Mail section)."} Save, then:
-                        </p>
-                        <button onClick={() => connect("mail")} className="tactile inline-flex items-center gap-2 self-start rounded-xl border border-white/[0.08] px-3.5 py-2 text-[13.5px] hover:bg-ink-800">
-                          <GoogleLogo size={16} weight="bold" /> Sign in with Google
-                        </button>
-                      </div>
-                    ) : (
-                      <SecretField id="offpw" label="Official App Password" isSet={!!s["gmail.official_app_password"]} value={secrets["gmail.official_app_password"]} onChange={setSecret("gmail.official_app_password")} error={errors["gmail.official_app_password"]} />
-                    )}
-                  </>
+                <Segmented
+                  label="Sending"
+                  value={f("gmail.send_mode") || "smtp"}
+                  onChange={set("gmail.send_mode")}
+                  options={[{ id: "draft", label: "Open as Gmail draft" }, { id: "smtp", label: "Send directly" }]}
+                />
+                <TextArea id="sig" label="Signature" value={f("gmail.signature")} onChange={set("gmail.signature")} placeholder={"Tanmay Angarkar\nGoogle Student Ambassador"} hint="Added to the end of every email HAVOC writes." />
+                {f("gmail.send_mode") === "draft" ? (
+                  <p className="self-end text-[12.5px] leading-relaxed text-fog-500">
+                    HAVOC writes the email and opens it ready to send in {f("gmail.official_address") || f("gmail.address") || "your Gmail"}. You press Send. No password needed for the sending account.
+                  </p>
+                ) : (
+                  f("gmail.official_address") && (
+                    <>
+                      <Segmented label="Official account sign-in" value={f("gmail.official_auth") || "app_password"} onChange={set("gmail.official_auth")} options={[{ id: "app_password", label: "App Password" }, { id: "oauth", label: "Sign in with Google" }]} />
+                      {f("gmail.official_auth") === "oauth" ? (
+                        <div className="flex flex-col gap-2 sm:col-span-2">
+                          <p className="text-[12.5px] leading-relaxed text-fog-500">
+                            {view.oauth_client_present ? "OAuth client found." : "First put your OAuth client JSON at data/google_oauth_client.json (README, Mail section)."} Save, then:
+                          </p>
+                          <button onClick={() => connect("mail")} className="tactile inline-flex items-center gap-2 self-start rounded-xl border border-white/[0.08] px-3.5 py-2 text-[13.5px] hover:bg-ink-800">
+                            <GoogleLogo size={16} weight="bold" /> Sign in with Google
+                          </button>
+                        </div>
+                      ) : (
+                        <SecretField id="offpw" label="Official App Password" isSet={!!s["gmail.official_app_password"]} value={secrets["gmail.official_app_password"]} onChange={setSecret("gmail.official_app_password")} error={errors["gmail.official_app_password"]} />
+                      )}
+                    </>
+                  )
                 )}
               </Group>
 
@@ -301,8 +326,9 @@ export function Connections({ onClose }: { onClose: () => void }) {
               >
                 <SecretField id="dtok" label="Bot token" isSet={!!s["discord.token"]} value={secrets["discord.token"]} onChange={setSecret("discord.token")} />
                 <Field id="guild" label="Server ID" value={f("discord.guild_id")} onChange={set("discord.guild_id")} error={errors["discord.guild_id"]} />
-                <Field id="owner" label="Your user ID" value={f("discord.owner_user_id")} onChange={set("discord.owner_user_id")} hint="Your DMs to the bot become commands." error={errors["discord.owner_user_id"]} />
-                <Field id="chan" label="Default channel" value={f("discord.default_channel")} onChange={set("discord.default_channel")} placeholder="general" />
+                <Field id="ownername" label="Your username" value={f("discord.owner_username")} onChange={set("discord.owner_username")} placeholder="tanmay_7697" hint="Your DMs to the bot become commands. HAVOC locks onto your account on your first DM." />
+                <Field id="owner" label="Your user ID (optional)" value={f("discord.owner_user_id")} onChange={set("discord.owner_user_id")} error={errors["discord.owner_user_id"]} />
+                <Field id="chan" label="Default channel" value={f("discord.default_channel")} onChange={set("discord.default_channel")} placeholder="general" hint="A name, a channel ID, or a channel link." />
                 <Field id="postas" label="Name on posts" value={f("discord.post_as_name")} onChange={set("discord.post_as_name")} hint="Posts show this name and your avatar." />
                 {view.discord_invite_url && (
                   <div className="flex items-end">

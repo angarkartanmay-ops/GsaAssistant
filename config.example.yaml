@@ -8,7 +8,7 @@ assistant:
   wake_words: [havoc, havok, havic, havick]
   user_name: Tanmay
   address_as: Sir             # what it calls you
-  sass: 2                     # sarcasm + humour: 0 none, 1 light, 2 regular, 3 full sass
+  sass: 1                     # sarcasm + humour: 0 none, 1 light (default), 2 regular, 3 full sass
 
 llm:
   host: http://127.0.0.1:11434

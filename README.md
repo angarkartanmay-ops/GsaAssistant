@@ -74,7 +74,7 @@ Security:
   direct, warm operations assistant, voiced by Kerry Condon) plus a sarcastic, fun, expressive streak.
   * Havoc leads with the facts, then adds the attitude. It celebrates wins, is openly appalled by
     newsletters pretending to be urgent, and teases your procrastination.
-  * Turn it up or down with `assistant.sass`: `0` none, `1` light, `2` regular (default), `3` full sass.
+  * Turn it up or down with `assistant.sass`: `0` none, `1` light (default), `2` regular, `3` full sass.
   * It drops the jokes when something is urgent, failed, or you sound stressed.
   * It always calls you **Sir** (`assistant.address_as`), and a final check adds "Sir" if the model forgets.
 * **Posts in your name** are expressive but never sarcastic. Announcements get energy, an

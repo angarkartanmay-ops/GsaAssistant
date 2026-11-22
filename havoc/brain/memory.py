@@ -77,6 +77,12 @@ class Memory:
         rows = self._all("SELECT role, content FROM messages ORDER BY id DESC LIMIT ?", (limit,))
         return [{"role": r["role"], "content": r["content"]} for r in reversed(rows)]
 
+    def history(self, limit: int = 40) -> list[dict]:
+        """Conversation across every device and channel, oldest first (the shared brain's log)."""
+        rows = self._all("SELECT ts, role, content, channel FROM messages ORDER BY id DESC LIMIT ?", (limit,))
+        return [{"ts": r["ts"], "role": r["role"], "content": r["content"], "channel": r["channel"]}
+                for r in reversed(rows)]
+
     def clear_history(self) -> None:
         self._exec("DELETE FROM messages")
 

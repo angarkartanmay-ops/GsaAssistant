@@ -1,0 +1,74 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+/* One accent (desaturated electric blue) on a zinc base. Semantic colours are for status dots only. */
+@theme {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --color-ink-950: #0c0d10;
+  --color-ink-900: #121419;
+  --color-ink-850: #171a20;
+  --color-ink-800: #1d2028;
+  --color-ink-700: #2a2e38;
+  --color-fog-100: #e8eaef;
+  --color-fog-300: #b7bcc7;
+  --color-fog-500: #8a909c;
+  --color-fog-600: #6b717d;
+  --color-signal: #5cb4d9;
+  --color-signal-strong: #7cc6e6;
+  --color-ok: #59c08f;
+  --color-warn: #d6a24a;
+  --color-bad: #e06a70;
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  html, body, #root { min-height: 100dvh; }
+  body {
+    @apply bg-ink-950 text-fog-100 font-sans antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+  ::selection { background: color-mix(in oklab, var(--color-signal) 35%, transparent); }
+  :focus-visible { outline: 2px solid var(--color-signal); outline-offset: 2px; border-radius: 8px; }
+  * { scrollbar-width: thin; scrollbar-color: var(--color-ink-700) transparent; }
+}
+
+@layer components {
+  /* Glass panel: blur plus a 1px inner highlight, shadow tinted to the background. */
+  .glass {
+    background: color-mix(in oklab, var(--color-ink-900) 82%, transparent);
+    backdrop-filter: blur(18px) saturate(120%);
+    border: 1px solid rgb(255 255 255 / 0.06);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 24px 48px -24px rgb(4 6 10 / 0.8);
+  }
+  .tactile { transition: transform 0.2s var(--ease-out-soft), background-color 0.2s, border-color 0.2s, opacity 0.2s; }
+  .tactile:active { transform: scale(0.98); }
+  .field {
+    @apply w-full rounded-xl bg-ink-850 px-3.5 py-2.5 text-[15px] text-fog-100 placeholder:text-fog-600;
+    border: 1px solid rgb(255 255 255 / 0.07);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .field:focus { outline: none; border-color: color-mix(in oklab, var(--color-signal) 60%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-signal) 18%, transparent); }
+  .skeleton {
+    background: linear-gradient(90deg, var(--color-ink-850) 0%, var(--color-ink-800) 50%, var(--color-ink-850) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+}
+
+/* Film grain on a fixed, non-interactive layer only. */
+.grain::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: 0.035;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+@keyframes shimmer { to { background-position: -200% 0; } }
+@keyframes breathe { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(0.82); } }
+.breathe { animation: breathe 2.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton, .breathe { animation: none; }
+  .tactile { transition: none; }
+}

@@ -80,8 +80,8 @@ def test_sass_dial_and_no_sarcasm_in_posts():
     from havoc.brain.persona import draft_rules, system_prompt
     from havoc.config import Config
     c = Config()
-    assert c.assistant.sass == 2 and c.assistant.name == "H.A.V.O.C."
-    assert "Sarcasm and humour are welcome" in system_prompt(c, [], "text")
+    assert c.assistant.sass == 1 and c.assistant.name == "H.A.V.O.C."
+    assert "light touch of dry wit" in system_prompt(c, [], "text")
     c.assistant.sass = 0
     assert "no sarcasm" in system_prompt(c, [], "text")
     c.assistant.sass = 9  # out of range is clamped, not a crash

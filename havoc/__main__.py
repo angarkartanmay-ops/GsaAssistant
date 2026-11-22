@@ -25,7 +25,10 @@ import webbrowser
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from .config import DATA_DIR, MODELS_DIR, ROOT, load_config
+from .config import DATA_DIR, MODELS_DIR, load_config
+
+
+RESTART_CODE = 3
 
 
 def setup_logging(verbose: bool = False) -> None:
@@ -84,8 +87,14 @@ async def cmd_run(args: argparse.Namespace) -> None:
     elif not llm.get("model_ready"):
         print(f"[!] Model {cfg.llm.model} isn't pulled. Run: ollama pull {cfg.llm.model}")
     url = f"http://{cfg.server.host}:{cfg.server.port}"
-    server = uvicorn.Server(uvicorn.Config(create_app(rt), host=cfg.server.host, port=cfg.server.port,
-                                           log_level="warning"))
+    restart = {"requested": False}
+
+    def request_restart() -> None:
+        restart["requested"] = True
+        server.should_exit = True
+
+    server = uvicorn.Server(uvicorn.Config(create_app(rt, on_restart=request_restart), host=cfg.server.host,
+                                           port=cfg.server.port, log_level="warning"))
     print(f"{cfg.assistant.name} online at {url}  (voice: {'on' if rt.voice else 'off'})")
     host = tailscale_host()
     if host and cfg.server.pin:
@@ -98,6 +107,8 @@ async def cmd_run(args: argparse.Namespace) -> None:
         await server.serve()
     finally:
         await rt.stop()
+    if restart["requested"]:
+        sys.exit(RESTART_CODE)  # start.bat and the desktop app relaunch on this code
 
 
 # ---------------------------------------------------------------- chat
@@ -188,12 +199,13 @@ def ask(prompt: str, default: str = "", secret: bool = False) -> str:
 def cmd_setup(args: argparse.Namespace) -> None:
     import yaml
 
-    print("\nH.A.V.O.C. setup. Press Enter to skip anything; you can edit config.yaml and .env later.\n")
-    cfg_path = ROOT / "config.yaml"
-    env_path = ROOT / ".env"
-    base = yaml.safe_load((ROOT / "config.example.yaml").read_text(encoding="utf-8"))
-    if cfg_path.exists():
-        base.update(yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {})
+    print("\nH.A.V.O.C. setup. Press Enter to skip anything. Easier: use Connections in the HUD.\n")
+    from . import config as config_mod
+    from .settings import read_config_yaml
+    cfg_path = config_mod.config_path()
+    env_path = config_mod.env_path()
+    env_path.parent.mkdir(parents=True, exist_ok=True)
+    base = read_config_yaml()
 
     a = base.setdefault("assistant", {})
     a["user_name"] = ask("Your first name", a.get("user_name", "Tanmay"))

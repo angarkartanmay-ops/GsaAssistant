@@ -23,5 +23,8 @@ if exist "whatsapp-bridge\node_modules" (
   echo WhatsApp bridge not installed; run setup.ps1. Continuing without it.
 )
 
+:run
 ".venv\Scripts\python.exe" -m havoc run %*
+rem Exit code 3 = "restart" (after saving Connections); relaunch with the new settings.
+if errorlevel 3 if not errorlevel 4 goto run
 if errorlevel 1 pause

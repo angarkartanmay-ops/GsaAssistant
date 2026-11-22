@@ -70,6 +70,8 @@ class Runtime:
 
     # ---------- conversation ----------
     async def ask(self, text: str, channel: str = "text") -> str:
+        # Every open screen (PC, phone) sees every turn, whichever device or chat it came from.
+        await self.bus.publish({"type": "user", "text": text, "channel": channel})
         return await self.agent.respond(text, channel=channel, emit=self.bus.publish)
 
     async def ask_and_maybe_speak(self, text: str) -> str:

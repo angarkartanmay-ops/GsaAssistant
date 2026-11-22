@@ -12,10 +12,21 @@ import yaml
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
-ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = ROOT / "data"
+ROOT = Path(__file__).resolve().parent.parent  # where the code lives
+# Where YOUR stuff lives (config.yaml, .env, data/, knowledge/). Same as ROOT for a git checkout;
+# the desktop app points it at %LOCALAPPDATA%\HAVOC so updates never touch your data.
+HOME = Path(os.environ.get("HAVOC_HOME") or ROOT).resolve()
+DATA_DIR = HOME / "data"
 MODELS_DIR = DATA_DIR / "models"
-KNOWLEDGE_DIR = ROOT / "knowledge"
+KNOWLEDGE_DIR = HOME / "knowledge"
+
+
+def config_path() -> Path:
+    return HOME / "config.yaml"
+
+
+def env_path() -> Path:
+    return HOME / ".env"
 
 
 class AssistantCfg(BaseModel):
@@ -26,9 +37,9 @@ class AssistantCfg(BaseModel):
     user_name: str = "Tanmay"
     # What it calls you. Always "Sir" unless you change it.
     address_as: str = "Sir"
-    # Sarcasm and humour level: 0 = none, 1 = light, 2 = regular (default), 3 = full sass.
+    # Sarcasm and humour level: 0 = none, 1 = light (default), 2 = regular, 3 = full sass.
     # Posts and emails written in your name never get sarcasm, whatever this says.
-    sass: int = 2
+    sass: int = 1
 
 
 class LLMCfg(BaseModel):
@@ -164,8 +175,8 @@ class Config(BaseModel):
 
 
 def load_config(path: Path | str | None = None) -> Config:
-    load_dotenv(ROOT / ".env")
-    path = Path(path) if path else ROOT / "config.yaml"
+    load_dotenv(env_path(), override=True)
+    path = Path(path) if path else config_path()
     raw: dict = {}
     if path.exists():
         raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -183,12 +194,15 @@ def load_config(path: Path | str | None = None) -> Config:
     if os.getenv("DASHBOARD_URL"):
         cfg.dashboard.url = os.environ["DASHBOARD_URL"]
     if not Path(cfg.dashboard.profile_dir).is_absolute():
-        cfg.dashboard.profile_dir = str(ROOT / cfg.dashboard.profile_dir)
+        cfg.dashboard.profile_dir = str(HOME / cfg.dashboard.profile_dir)
     if not Path(cfg.gmail.oauth_client_file).is_absolute():
-        cfg.gmail.oauth_client_file = str(ROOT / cfg.gmail.oauth_client_file)
+        cfg.gmail.oauth_client_file = str(HOME / cfg.gmail.oauth_client_file)
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    if not KNOWLEDGE_DIR.exists() and (ROOT / "knowledge").exists() and KNOWLEDGE_DIR != ROOT / "knowledge":
+        import shutil
+        shutil.copytree(ROOT / "knowledge", KNOWLEDGE_DIR)  # first run of the desktop app
     inbox_dir()
     return cfg
 

@@ -33,12 +33,14 @@ import qrcodeTerminal from 'qrcode-terminal';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
-loadDotEnv(path.join(ROOT, '.env'));
+// Same rule as the Python side: your data lives in HAVOC_HOME (the desktop app sets it).
+const HOME = path.resolve(process.env.HAVOC_HOME || ROOT);
+loadDotEnv(path.join(HOME, '.env'));
 
 const PORT = Number(process.env.WA_BRIDGE_PORT || 3777);
 const HOST = '127.0.0.1';
 const TOKEN = process.env.WA_BRIDGE_TOKEN || '';
-const DATA = path.join(ROOT, 'data', 'whatsapp');
+const DATA = path.join(HOME, 'data', 'whatsapp');
 const AUTH_DIR = path.join(DATA, 'auth');
 const STORE_FILE = path.join(DATA, 'messages.json');
 const MAX_PER_CHAT = 1500;
@@ -154,7 +156,7 @@ async function connect() {
   sock.ev.on('groups.update', () => refreshGroups());
 }
 
-const INBOX = path.join(ROOT, 'data', 'inbox');
+const INBOX = path.join(HOME, 'data', 'inbox');
 const sentKeys = [];
 const MIME = {
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif',

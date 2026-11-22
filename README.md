@@ -1,12 +1,13 @@
-# N.O.V.A.
+# H.A.V.O.C.
 
-**Never Off-duty Virtual Aide.** A personal assistant for Google Student Ambassador work. It runs on
+**Helpful Assistant, Very Occasionally Chaotic.** A personal assistant for Google Student Ambassador work. It runs on
 your own Windows PC for $0, and you can reach it from your phone wherever you are.
 
 It reads and summarises your GSA mail, reads the ambassador dashboard and its tasks, follows your
 batch Discord and the GSA WhatsApp group, and **posts your work for you**: text, photos and files, to
-Discord, WhatsApp and email. You can type, talk to it at the PC ("Nova, brief me"), DM it on Discord,
-or use the phone app. It answers in a warm, quick, FRIDAY-style voice and calls you **Sir**.
+Discord, WhatsApp and email. You can type, talk to it at the PC ("Havoc, brief me"), DM it on Discord,
+or use the phone app. It answers in a warm, quick, FRIDAY-style voice, calls you **Sir**, and has
+opinions about your deadlines. The name is a warning label, not a design goal.
 
 ```
  phone ──Discord DM / Tailscale app──┐
@@ -43,8 +44,8 @@ The PC does the work, so **it has to be on and awake**. `setup.ps1` offers to tu
 power. There are two ways in; use either or both.
 
 **1. Discord DM (nothing to install).** DM your bot from the Discord app.
-* Text works like typing to Nova.
-* **Photos and files** you attach are saved to Nova's inbox. Say what to do with them, e.g.
+* Text works like typing to Havoc.
+* **Photos and files** you attach are saved to Havoc's inbox. Say what to do with them, e.g.
   "post these in the GSA group".
 * **Voice notes** are transcribed on your PC. The reply comes back as text plus a short spoken clip.
 
@@ -58,39 +59,48 @@ paperclip for photos.
 4. Tap the mic to talk and tap again to send, or tap the paperclip to attach photos.
 
 If `tailscale serve` complains about HTTPS, turn on **HTTPS certificates** in the Tailscale admin
-console (DNS page) and re-run `python -m nova setup`. The phone mic only works over https.
+console (DNS page) and re-run `python -m havoc setup`. The phone mic only works over https.
 
 Security:
 * The HUD only listens on `127.0.0.1`. Tailscale is the only way in from outside.
 * Every non-local request needs the PIN. After 5 wrong tries that device is locked out for 15 minutes.
 * Requests with any other hostname are refused.
-* Attachments can only come from Nova's inbox (things you sent from the phone), so a misheard
+* Attachments can only come from Havoc's inbox (things you sent from the phone), so a misheard
   request can't send arbitrary files from the PC.
 
 ## Voice and personality
 
-* **Personality** (`nova/brain/persona.py`): modelled on FRIDAY, voiced by Kerry Condon in her own
-  Irish accent, who took over from JARVIS as a direct, warm operations assistant. Nova leads with
-  the status and keeps it short, with a bit of cheek when things are calm. It always calls you
-  **Sir** (`assistant.address_as`), and a final check adds "Sir" if the model forgets.
-* **Voice** (`nova/voice/tts.py`): Kokoro-82M (Apache-2.0) running locally, a blend of the warm
-  British female voices `bf_emma` and `bf_isabella` at a brisk 1.05 speed. No free local model has
+* **Personality** (`havoc/brain/persona.py`): FRIDAY's competence (she took over from JARVIS as a
+  direct, warm operations assistant, voiced by Kerry Condon) plus a sarcastic, fun, expressive streak.
+  * Havoc leads with the facts, then adds the attitude. It celebrates wins, is openly appalled by
+    newsletters pretending to be urgent, and teases your procrastination.
+  * Turn it up or down with `assistant.sass`: `0` none, `1` light, `2` regular (default), `3` full sass.
+  * It drops the jokes when something is urgent, failed, or you sound stressed.
+  * It always calls you **Sir** (`assistant.address_as`), and a final check adds "Sir" if the model forgets.
+* **Posts in your name** are expressive but never sarcastic. Announcements get energy, an
+  exclamation and a fitting emoji or two on WhatsApp/Discord; emails stay polite. "Make it exciting"
+  changes the wording only. It never invents dates, numbers or perks you didn't give.
+* **No made-up facts:** questions about your mail, tasks, chats or your day are always answered from
+  the real data. If the model tries to answer from imagination, it's sent back to check. If it still
+  won't, Havoc runs the right tool itself and makes the model answer from the result.
+* **Voice** (`havoc/voice/tts.py`): Kokoro-82M (Apache-2.0) running locally. The default is a blend
+  of the warm British female voices `bf_emma` (60%) and `bf_isabella` (40%) at a brisk 1.05 speed. No free local model has
   an Irish voice, so this is the closest warm, quick option. It doesn't imitate the actress.
-  To audition others: `python -m nova say "Morning, Sir." --voice bf_isabella`
+  To audition others: `python -m havoc say "Morning, Sir." --voice bf_isabella`
   (also `bf_emma`, `bf_alice`, `bf_lily`).
 * **No AI slop:** filler like "Certainly!", "I hope this finds you well", "delve" and "feel free to"
-  is banned in the prompt and stripped by `nova/brain/antislop.py`. Anything posted in your name is
-  rewritten to sound like you, not like Nova.
+  is banned in the prompt and stripped by `havoc/brain/antislop.py`. Anything posted in your name is
+  rewritten to sound like you, not like Havoc.
 
 ## Install (Windows 11, about 20 minutes, mostly downloads)
 
-1. Download this repo to e.g. `C:\NOVA`.
+1. Download this repo to e.g. `C:\HAVOC`.
 2. Run `powershell -ExecutionPolicy Bypass -File .\setup.ps1`. It installs Python 3.12, Node.js,
    Ollama and Tailscale via winget, then the packages, the voice models and `qwen3:8b`. Then it runs
    a wizard for the details below.
-3. Sign in to the dashboard once: `.\.venv\Scripts\python.exe -m nova login-dashboard`
-4. Double-click **NOVA** on the desktop and scan the WhatsApp QR the first time.
-5. Run `.\.venv\Scripts\python.exe -m nova doctor` whenever something seems off. It names the problem and the fix.
+3. Sign in to the dashboard once: `.\.venv\Scripts\python.exe -m havoc login-dashboard`
+4. Double-click **HAVOC** on the desktop and scan the WhatsApp QR the first time.
+5. Run `.\.venv\Scripts\python.exe -m havoc doctor` whenever something seems off. It names the problem and the fix.
 
 **Secrets (passwords, tokens, PIN) go into the wizard or `.env` on your PC, never into a chat.**
 What you can safely share is non-secret: addresses, channel names, group names.
@@ -107,7 +117,7 @@ What you can safely share is non-secret: addresses, channel names, group names.
      **OAuth client ID** of type *Desktop app*. Download the JSON as `data/google_oauth_client.json`.
   2. Under *OAuth consent screen*, add your address as a test user.
   3. Set `gmail.official_auth: oauth` in `config.yaml` (or `gmail.auth: oauth` for the reading
-     inbox), then run `python -m nova login-mail` once.
+     inbox), then run `python -m havoc login-mail` once.
 
   If your college admin blocks third-party apps entirely, Google won't allow either route. In that
   case, forward GSA mail to a personal Gmail and send from that.
@@ -127,7 +137,7 @@ What you can safely share is non-secret: addresses, channel names, group names.
 Posts go through a channel webhook, so they show **your name and avatar** (Discord adds a small
 APP tag). If the bot lacks Manage Webhooks in a channel, it posts as itself there. Posting from
 your personal account itself (a "self-bot") isn't supported: Discord bans accounts for it.
-DMs you send the bot become commands to Nova.
+DMs you send the bot become commands to Havoc.
 </details>
 
 <details><summary><b>WhatsApp (sends from your own number)</b></summary>
@@ -144,8 +154,8 @@ To link, scan the QR shown in the HUD or the bridge window via WhatsApp → Sett
 
 <details><summary><b>Ambassador dashboard</b></summary>
 
-Set `dashboard.url` and run `python -m nova login-dashboard` once. Sign in with Google, then close
-the window. After that Nova reads the dashboard in the background, turns it into a task list, and
+Set `dashboard.url` and run `python -m havoc login-dashboard` once. Sign in with Google, then close
+the window. After that Havoc reads the dashboard in the background, turns it into a task list, and
 alerts you to new tasks.
 
 If Google refuses the sign-in, start Chrome with `--remote-debugging-port=9222`, sign in there,
@@ -154,9 +164,9 @@ and set `dashboard.cdp_url: http://127.0.0.1:9222`.
 
 ## At the PC
 
-* **Voice:** say **"Nova, …"**. After it answers you have about 7 seconds for a follow-up without the
+* **Voice:** say **"Havoc, …"**. After it answers you have about 7 seconds for a follow-up without the
   wake word. **Ctrl+Alt+M** (or the mic button) talks, or cuts it off mid-sentence.
-* **Typing:** use the HUD, or the terminal: `python -m nova chat`.
+* **Typing:** use the HUD, or the terminal: `python -m havoc chat`.
 * **Knowledge:** put program facts (POC, targets, deadlines) in `knowledge/gsa.md`.
 
 ## Hardware (RTX 5060, 8 GB)
@@ -175,7 +185,7 @@ tight, set `llm.model: qwen3:4b`.
 ## Layout
 
 ```
-nova/
+havoc/
   brain/      agent loop, persona, anti-slop (+ "Sir"), Ollama client, SQLite memory
   tools/      every capability the model can call (one @tool function each)
   connectors/ gmail_imap (+ google_oauth), dashboard_browser, discord_bot, whatsapp_client
@@ -183,7 +193,7 @@ nova/
   server/     HUD + phone app (FastAPI, WebSocket, PIN gate, uploads, voice notes)
   scheduler.py  alerts, reminders, morning briefing
 whatsapp-bridge/  Node + Baileys linked-device bridge (127.0.0.1:3777)
-knowledge/        notes Nova reads every turn
+knowledge/        notes Havoc reads every turn
 data/             database, logs, models, inbox, sessions (git-ignored; keep private)
 ```
 

@@ -1,6 +1,6 @@
 import pytest
 
-from nova.brain.antislop import find_slop, for_speech, light_clean, polish
+from havoc.brain.antislop import find_slop, for_speech, light_clean, polish
 
 
 def test_detects_common_slop():
@@ -58,7 +58,7 @@ async def test_polish_rewrites_only_when_needed():
     ("- report due Friday\n- slides by Thursday", "Sir:\n- report due Friday\n- slides by Thursday"),
 ])
 def test_always_addresses_him_as_sir(raw, expected):
-    from nova.brain.antislop import ensure_address
+    from havoc.brain.antislop import ensure_address
     assert ensure_address(raw, "Sir") == expected
 
 

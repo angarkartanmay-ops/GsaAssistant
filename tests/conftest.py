@@ -6,7 +6,7 @@ from typing import Any, AsyncIterator, Callable, Optional
 
 import pytest
 
-from nova.config import Config
+from havoc.config import Config
 
 
 class FakeLLM:
@@ -53,7 +53,7 @@ class FakeLLM:
 
 @pytest.fixture
 def cfg(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Config:
-    import nova.config as mc
+    import havoc.config as mc
     monkeypatch.setattr(mc, "DATA_DIR", tmp_path)
     c = Config()
     c.discord.token = ""
@@ -66,7 +66,7 @@ def cfg(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Config:
 
 @pytest.fixture
 def make_rt(cfg: Config, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    from nova.runtime import Runtime
+    from havoc.runtime import Runtime
 
     monkeypatch.setattr(Config, "db_path", property(lambda self: tmp_path / "test.db"))
 

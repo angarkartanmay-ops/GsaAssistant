@@ -1,11 +1,11 @@
 import pytest
 
-from nova.brain.agent import route_groups
-from nova.tools.registry import REGISTRY
+from havoc.brain.agent import route_groups
+from havoc.tools.registry import REGISTRY
 
 
 def test_tool_schemas_are_valid():
-    import nova.tools  # noqa: F401
+    import havoc.tools  # noqa: F401
     names = set(REGISTRY.tools)
     for expected in ["gsa_mail_digest", "dashboard_tasks", "discord_read", "discord_post", "wa_read",
                      "wa_send", "daily_briefing", "remind_me", "run_powershell", "open_app", "web_search"]:
@@ -28,10 +28,10 @@ def test_routing_narrows_tools():
 
 @pytest.mark.asyncio
 async def test_plain_reply_is_cleaned_and_saved(make_rt):
-    rt = make_rt(["Certainly! Your inbox is quiet."])
-    reply = await rt.ask("anything new?")
-    assert reply == "Your inbox is quiet, Sir."
-    assert rt.memory.recent_messages()[-1]["content"] == "Your inbox is quiet, Sir."
+    rt = make_rt(["Certainly! Running smoothly."])
+    reply = await rt.ask("how are you holding up?")
+    assert reply == "Running smoothly, Sir."
+    assert rt.memory.recent_messages()[-1]["content"] == "Running smoothly, Sir."
 
 
 @pytest.mark.asyncio
@@ -146,8 +146,34 @@ async def test_unknown_tool_does_not_crash(make_rt):
 
 @pytest.mark.asyncio
 async def test_shell_confirm_policy(make_rt):
-    from nova.tools.system import shell_needs_confirm
+    from havoc.tools.system import shell_needs_confirm
     rt = make_rt()
     assert not shell_needs_confirm(rt, command="Get-Process | Select -First 5")
     assert shell_needs_confirm(rt, command="Remove-Item C:\\temp -Recurse")
     assert shell_needs_confirm(rt, command="Get-ChildItem; Remove-Item x")
+
+
+@pytest.mark.asyncio
+async def test_data_questions_are_grounded_even_if_the_model_makes_things_up(make_rt):
+    """A model that invents chat contents twice gets overruled: Havoc reads the group itself."""
+    from havoc.brain.agent import grounding_tool
+    assert grounding_tool("What's new in the GSA WhatsApp group?") == "wa_read"
+    assert grounding_tool("anything I should worry about today?") == "daily_briefing"
+    assert grounding_tool("post in discord: workshop Saturday") is None  # actions aren't forced
+
+    reads = []
+
+    async def fake_messages(group=None, hours=24, limit=300):
+        reads.append(hours)
+        return {"id": "1@g.us", "name": "GSA Batch"}, []
+
+    rt = make_rt(["Riya posted about a pizza party!",           # invented
+                  "There's a reminder about the next event.",   # invented again after the nudge
+                  "Quiet day: nothing new in GSA Batch."])      # answer from the forced read
+    rt.whatsapp.messages = fake_messages
+    reply = await rt.ask("What's new in the GSA WhatsApp group?")
+    assert reads == [24]
+    assert "pizza" not in reply and reply.startswith("Quiet day")
+    tool_msgs = [m for m in rt.llm.calls[-1]["messages"] if m["role"] == "tool"]
+    assert tool_msgs and "nothing new" in tool_msgs[-1]["content"]
+    assert rt.llm.calls[-1]["tools"] is None  # the final answer can't wander off into other tools

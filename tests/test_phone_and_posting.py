@@ -9,10 +9,10 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from nova.config import ServerCfg, WhatsAppCfg, inbox_dir
-from nova.connectors.whatsapp_client import WhatsAppClient
-from nova.server.auth import COOKIE, MAX_FAILS, Gate
-from nova.tools.common import AttachmentError, resolve_attachments
+from havoc.config import ServerCfg, WhatsAppCfg, inbox_dir
+from havoc.connectors.whatsapp_client import WhatsAppClient
+from havoc.server.auth import COOKIE, MAX_FAILS, Gate
+from havoc.tools.common import AttachmentError, resolve_attachments
 
 TS = "my-pc.tail1234.ts.net"
 
@@ -54,7 +54,7 @@ def _wav_bytes(seconds=0.5, sr=16000) -> bytes:
 
 @pytest.fixture
 def phone(make_rt, tmp_path):
-    from nova.server.app import create_app
+    from havoc.server.app import create_app
     rt = make_rt(["Posted, Sir."])
     rt.cfg.server.pin = "4321"
     app = create_app(rt, Gate(rt.cfg.server, secret_file=tmp_path / "secret"))
@@ -62,7 +62,7 @@ def phone(make_rt, tmp_path):
 
 
 def test_pc_window_needs_no_pin(make_rt, tmp_path):
-    from nova.server.app import create_app
+    from havoc.server.app import create_app
     rt = make_rt()
     c = TestClient(create_app(rt, Gate(rt.cfg.server, secret_file=tmp_path / "s")), base_url="http://127.0.0.1:7777")
     assert c.get("/").status_code == 200
@@ -120,7 +120,7 @@ def test_upload_and_voice(phone, monkeypatch):
 
     monkeypatch.setattr(rt, "transcribe_file", fake_transcribe)
     monkeypatch.setattr(rt, "speak_to_file", fake_speak)
-    import nova.config as mc
+    import havoc.config as mc
     monkeypatch.setattr(mc, "DATA_DIR", Path(rt.cfg.db_path).parent)
     r = c.post("/api/voice", files={"audio": ("voice.webm", _wav_bytes(), "audio/webm")},
                data={"attachments": json.dumps([name])})
@@ -195,7 +195,7 @@ async def test_discord_and_whatsapp_post_directly_with_files_and_undo(make_rt):
 async def test_discord_posts_via_webhook_as_user_and_falls_back(cfg, tmp_path):
     import discord
 
-    from nova.connectors.discord_bot import WEBHOOK_NAME, DiscordConnector
+    from havoc.connectors.discord_bot import WEBHOOK_NAME, DiscordConnector
 
     f = inbox_dir() / "1763800000_poster.png"
     f.write_bytes(b"png")
@@ -269,7 +269,7 @@ async def test_whatsapp_client_sends_files_and_deletes():
 
 
 def test_official_sender_and_attachment_names(cfg):
-    from nova.connectors.gmail_imap import GmailClient
+    from havoc.connectors.gmail_imap import GmailClient
     cfg.gmail.address, cfg.gmail.app_password = "me@gmail.com", "abcd"
     g = GmailClient(cfg.gmail)
     assert g.sender.address == "me@gmail.com"

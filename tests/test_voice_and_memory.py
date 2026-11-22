@@ -3,10 +3,10 @@ import time
 import numpy as np
 import pytest
 
-from nova.brain.memory import Memory
-from nova.voice.fx import chime, normalize
-from nova.voice.tts import parse_blend, split_sentences
-from nova.voice.vad import EnergyVAD, Segmenter
+from havoc.brain.memory import Memory
+from havoc.voice.fx import chime, normalize
+from havoc.voice.tts import parse_blend, split_sentences
+from havoc.voice.vad import EnergyVAD, Segmenter
 
 
 def test_blend_parsing_normalises():
@@ -20,8 +20,8 @@ def test_sentence_split_keeps_long_sentences_bounded():
 
 
 def test_voice_is_clean_no_effects_chain():
-    import nova.voice.fx as fx
-    from nova.config import VoiceCfg
+    import havoc.voice.fx as fx
+    from havoc.config import VoiceCfg
     assert not hasattr(fx, "menace_fx") and "menace" not in VoiceCfg.model_fields
     cfg = VoiceCfg()
     assert cfg.tts_voice.startswith("bf_") and cfg.tts_lang == "en-gb"
@@ -31,8 +31,8 @@ def test_voice_is_clean_no_effects_chain():
 
 
 def test_persona_calls_him_sir():
-    from nova.brain.persona import GREETINGS, system_prompt
-    from nova.config import Config
+    from havoc.brain.persona import GREETINGS, system_prompt
+    from havoc.config import Config
     p = system_prompt(Config(), [], "text")
     assert 'Address him as "Sir"' in p and "FRIDAY" not in p
     assert all("{address}" in g for g in GREETINGS)
@@ -70,7 +70,26 @@ def test_memory_tasks_reminders_seen(tmp_path):
 
 @pytest.mark.asyncio
 async def test_reminder_tool_parses_natural_time(make_rt):
-    from nova.tools.core import remind_me
+    from havoc.tools.core import remind_me
     rt = make_rt()
     out = await remind_me(rt, "in 20 minutes", "check the form")
     assert out.startswith("Reminder #") and rt.memory.upcoming_reminders(3600)
+
+
+def test_sass_dial_and_no_sarcasm_in_posts():
+    from havoc.brain.persona import draft_rules, system_prompt
+    from havoc.config import Config
+    c = Config()
+    assert c.assistant.sass == 2 and c.assistant.name == "H.A.V.O.C."
+    assert "Sarcasm and humour are welcome" in system_prompt(c, [], "text")
+    c.assistant.sass = 0
+    assert "no sarcasm" in system_prompt(c, [], "text")
+    c.assistant.sass = 9  # out of range is clamped, not a crash
+    assert "Full sass" in system_prompt(c, [], "text")
+    assert "No sarcasm" in draft_rules(c)
+    assert "drop your own persona and your sarcasm" in system_prompt(c, [], "text")
+
+
+def test_default_voice_is_the_blend():
+    from havoc.config import VoiceCfg
+    assert VoiceCfg().tts_voice == "bf_emma:0.6,bf_isabella:0.4"

@@ -1,4 +1,4 @@
-// N.O.V.A. WhatsApp bridge.
+// H.A.V.O.C. WhatsApp bridge.
 // Links your WhatsApp as a "linked device" (like WhatsApp Web) using Baileys, keeps a local
 // store of recent messages, and exposes a tiny HTTP API on 127.0.0.1 for the Python side.
 //
@@ -257,7 +257,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { ok: true, id: sent?.key?.id });
     }
     if (url.pathname === '/delete' && req.method === 'POST') {
-      // Delete-for-everyone of a message this bridge sent (used by Nova's undo).
+      // Delete-for-everyone of a message this bridge sent (used by Havoc's undo).
       const { chat, id } = await readBody(req);
       const key = sentKeys.find((k) => k.id === id && k.remoteJid === chat);
       if (!key) return send(res, 404, { error: 'not a message this bridge sent recently' });

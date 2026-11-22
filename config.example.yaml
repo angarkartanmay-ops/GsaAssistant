@@ -1,13 +1,14 @@
-# N.O.V.A. settings. Copy to config.yaml (the setup wizard does this for you).
+# H.A.V.O.C. settings. Copy to config.yaml (the setup wizard does this for you).
 # Secrets (Gmail App Password, Discord token) go in .env, never here.
 
 assistant:
-  name: N.O.V.A.
-  spoken_name: Nova
+  name: H.A.V.O.C.
+  spoken_name: Havoc
   # The wake word, plus the ways Whisper tends to mishear it. Rename the assistant? Change all three.
-  wake_words: [nova, novah, nover]
+  wake_words: [havoc, havok, havic, havick]
   user_name: Tanmay
   address_as: Sir             # what it calls you
+  sass: 2                     # sarcasm + humour: 0 none, 1 light, 2 regular, 3 full sass
 
 llm:
   host: http://127.0.0.1:11434
@@ -20,7 +21,7 @@ llm:
 
 voice:
   enabled: true
-  wake_enabled: true          # say "Nova, ..." hands-free
+  wake_enabled: true          # say "Havoc, ..." hands-free
   push_to_talk_hotkey: ctrl+alt+m
   stt_model: small.en         # better accuracy: medium.en (more VRAM); faster: base.en
   wake_model: tiny.en
@@ -31,7 +32,7 @@ voice:
   input_device: null          # null = Windows default mic. Or a device name/number from `python -m sounddevice`
   output_device: null
   # The voice: a blend of Kokoro's warm British female voices. Try others with
-  #   python -m nova say "Morning, Sir." --voice bf_emma        (also bf_isabella, bf_alice, bf_lily)
+  #   python -m havoc say "Morning, Sir." --voice bf_emma        (also bf_isabella, bf_alice, bf_lily)
   tts_voice: bf_emma:0.6,bf_isabella:0.4
   tts_lang: en-gb
   tts_speed: 1.05
@@ -66,7 +67,7 @@ dashboard:
 discord:
   enabled: true
   guild_id: 0                 # right-click your server > Copy Server ID (enable Developer Mode first)
-  owner_user_id: 0            # your own user ID: DM the bot from your phone and it answers as Nova
+  owner_user_id: 0            # your own user ID: DM the bot from your phone and it answers as Havoc
   default_channel: general
   post_as_webhook: true       # posts show YOUR name + avatar (via a channel webhook), not the bot's
   post_as_name: ""            # empty = user_name
@@ -102,4 +103,4 @@ server:
   port: 7777
   open_window: true
   remote_hosts: []            # your PC's Tailscale name, e.g. [my-pc.tail1234.ts.net] (the wizard fills it)
-  # The phone PIN lives in .env as NOVA_PIN.
+  # The phone PIN lives in .env as HAVOC_PIN.

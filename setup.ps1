@@ -1,4 +1,4 @@
-# N.O.V.A. one-time setup for Windows 11.
+# H.A.V.O.C. one-time setup for Windows 11.
 # Run from this folder:  powershell -ExecutionPolicy Bypass -File .\setup.ps1
 # Installs (via winget, all free): Python 3.12, Node.js LTS, Ollama, Tailscale. Then Python
 # packages, the WhatsApp bridge, voice models, the LLM, and runs the setup wizard.
@@ -33,7 +33,7 @@ if (-not (Have node)) { Winget-Install "OpenJS.NodeJS.LTS" }
 Say "Checking Ollama"
 if (-not (Have ollama)) { Winget-Install "Ollama.Ollama" }
 
-Say "Checking Tailscale (private link so your phone can reach Nova when you're out)"
+Say "Checking Tailscale (private link so your phone can reach Havoc when you're out)"
 if (-not (Have tailscale)) {
     $answer = Read-Host "Install Tailscale for phone access? Free for personal use. (Y/n)"
     if ($answer -notmatch '^[nN]') { Winget-Install "Tailscale.Tailscale" }
@@ -63,13 +63,13 @@ if (Have nvidia-smi) {
 }
 
 Say "Setup wizard"
-& $vpy -m nova setup
+& $vpy -m havoc setup
 
-$answer = Read-Host "`nStart Nova automatically when you log in? (y/N)"
+$answer = Read-Host "`nStart Havoc automatically when you log in? (y/N)"
 if ($answer -match '^[yY]') {
     $startup = [Environment]::GetFolderPath("Startup")
     $shell = New-Object -ComObject WScript.Shell
-    $lnk = $shell.CreateShortcut((Join-Path $startup "NOVA.lnk"))
+    $lnk = $shell.CreateShortcut((Join-Path $startup "HAVOC.lnk"))
     $lnk.TargetPath = (Join-Path $PSScriptRoot "start.bat")
     $lnk.WorkingDirectory = $PSScriptRoot
     $lnk.WindowStyle = 7
@@ -77,7 +77,7 @@ if ($answer -match '^[yY]') {
     Write-Host "Added to Startup."
 }
 
-Write-Host "`nNova runs on this PC. If the PC sleeps or shuts down, your phone can't reach it."
+Write-Host "`nHavoc runs on this PC. If the PC sleeps or shuts down, your phone can't reach it."
 $answer = Read-Host "Stop this PC from sleeping while plugged in? (y/N)"
 if ($answer -match '^[yY]') {
     powercfg /change standby-timeout-ac 0
@@ -87,15 +87,15 @@ if ($answer -match '^[yY]') {
 
 $desk = [Environment]::GetFolderPath("Desktop")
 $shell = New-Object -ComObject WScript.Shell
-$lnk = $shell.CreateShortcut((Join-Path $desk "NOVA.lnk"))
+$lnk = $shell.CreateShortcut((Join-Path $desk "HAVOC.lnk"))
 $lnk.TargetPath = (Join-Path $PSScriptRoot "start.bat")
 $lnk.WorkingDirectory = $PSScriptRoot
 $lnk.Save()
 
 Say "Done"
-Write-Host "1. Sign in to the ambassador dashboard once:  .\.venv\Scripts\python.exe -m nova login-dashboard"
-Write-Host "2. Double-click NOVA on your desktop (or start.bat)."
+Write-Host "1. Sign in to the ambassador dashboard once:  .\.venv\Scripts\python.exe -m havoc login-dashboard"
+Write-Host "2. Double-click HAVOC on your desktop (or start.bat)."
 Write-Host "3. Scan the WhatsApp QR shown in the HUD the first time."
 Write-Host "4. Phone: install Tailscale, sign in with the same account, open the https://...ts.net address"
 Write-Host "   the wizard printed, enter your PIN, then 'Add to Home screen'. Or just DM the bot on Discord."
-Write-Host "Health check any time:  .\.venv\Scripts\python.exe -m nova doctor"
+Write-Host "Health check any time:  .\.venv\Scripts\python.exe -m havoc doctor"

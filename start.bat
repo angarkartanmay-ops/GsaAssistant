@@ -1,7 +1,7 @@
 @echo off
-rem M.A.L.I.C.E. launcher: Ollama + WhatsApp bridge + assistant (HUD opens in an Edge app window).
+rem N.O.V.A. launcher: Ollama + WhatsApp bridge + assistant (HUD opens in an Edge app window).
 cd /d "%~dp0"
-title M.A.L.I.C.E.
+title N.O.V.A.
 
 if not exist ".venv\Scripts\python.exe" (
   echo Run setup.ps1 first:  powershell -ExecutionPolicy Bypass -File .\setup.ps1
@@ -18,10 +18,10 @@ if errorlevel 1 (
 
 rem WhatsApp bridge in its own minimised window (shows the QR the first time).
 if exist "whatsapp-bridge\node_modules" (
-  start "MALICE WhatsApp bridge" /min cmd /c "cd /d whatsapp-bridge && node index.js"
+  start "NOVA WhatsApp bridge" /min cmd /c "cd /d whatsapp-bridge && node index.js"
 ) else (
   echo WhatsApp bridge not installed; run setup.ps1. Continuing without it.
 )
 
-".venv\Scripts\python.exe" -m malice run %*
+".venv\Scripts\python.exe" -m nova run %*
 if errorlevel 1 pause

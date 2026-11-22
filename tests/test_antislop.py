@@ -1,6 +1,6 @@
 import pytest
 
-from malice.brain.antislop import find_slop, for_speech, light_clean, polish
+from nova.brain.antislop import find_slop, for_speech, light_clean, polish
 
 
 def test_detects_common_slop():
@@ -48,3 +48,19 @@ async def test_polish_rewrites_only_when_needed():
     out = await polish("I hope this message finds you well! Let's delve into the vibrant Gemini workshop on Friday.",
                        L(), "rules")
     assert L.calls == 1 and "delve" not in out and "Friday" in out
+
+
+@pytest.mark.parametrize("raw,expected", [
+    ("Done. Posted in #general.", "Done, Sir. Posted in #general."),
+    ("Your last WhatsApp message has been deleted.", "Your last WhatsApp message has been deleted, Sir."),
+    ("Sir, all set.", "Sir, all set."),
+    ("All good, sir.", "All good, sir."),
+    ("- report due Friday\n- slides by Thursday", "Sir:\n- report due Friday\n- slides by Thursday"),
+])
+def test_always_addresses_him_as_sir(raw, expected):
+    from nova.brain.antislop import ensure_address
+    assert ensure_address(raw, "Sir") == expected
+
+
+def test_successfully_filler_removed():
+    assert light_clean("The photo has been successfully sent.") == "The photo has been sent."

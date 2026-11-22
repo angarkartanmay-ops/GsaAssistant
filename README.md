@@ -1,179 +1,191 @@
-# M.A.L.I.C.E.
+# N.O.V.A.
 
-**Mostly Altruistic Logic & Intelligence for Campus Engagement.** A personal AI assistant for
-Google Student Ambassador work that runs entirely on your own Windows PC, for $0.
+**Never Off-duty Virtual Aide.** A personal assistant for Google Student Ambassador work. It runs on
+your own Windows PC for $0, and you can reach it from your phone wherever you are.
 
 It reads and summarises your GSA mail, reads the ambassador dashboard and its tasks, follows your
-batch Discord server and the GSA WhatsApp group, posts and replies for you, and handles general PC
-jobs. You talk to it by typing or by voice ("Malice, brief me"), and it answers in a calm,
-sardonic, faintly menacing machine voice. The attitude is aimed at your deadlines, never at you.
+batch Discord and the GSA WhatsApp group, and **posts your work for you**: text, photos and files, to
+Discord, WhatsApp and email. You can type, talk to it at the PC ("Nova, brief me"), DM it on Discord,
+or use the phone app. It answers in a warm, quick, FRIDAY-style voice and calls you **Sir**.
 
 ```
- you ──voice/text──▶  HUD (Edge app window) / terminal / Discord DM
-                          │
-                  ┌───────▼────────┐   tools   ┌──────────────────────────────────────┐
-                  │  agent loop    │──────────▶│ Gmail (IMAP) · Dashboard (browser)   │
-                  │  Qwen3-8B via  │◀──────────│ Discord bot · WhatsApp bridge        │
-                  │  Ollama (GPU)  │           │ tasks · reminders · web · PowerShell │
-                  └───────┬────────┘           └──────────────────────────────────────┘
-          Whisper (STT) ◀─┴─▶ Kokoro + effects chain (TTS)
+ phone ──Discord DM / Tailscale app──┐
+ you at the PC ──voice / HUD─────────┤
+                              ┌──────▼───────┐  tools  ┌──────────────────────────────────────┐
+                              │  agent loop  │────────▶│ Gmail (read + official sender)       │
+                              │  Qwen3-8B on │◀────────│ Dashboard · Discord (posts as you)   │
+                              │  Ollama/GPU  │         │ WhatsApp (your number) · tasks · PC  │
+                              └──────┬───────┘         └──────────────────────────────────────┘
+               Whisper (speech in) ◀─┴─▶ Kokoro (speech out)
 ```
 
 ## What it can do
 
-| Area | Examples |
+| Area | Say or type |
 |---|---|
-| Mail | "Summarise my GSA mail from this week" · "Draft a reply to the report reminder saying I'll submit Thursday" · "Send it" |
-| Dashboard | "What's on my dashboard?" · "How many engagements do I have this month?" · "Mark the photo upload task done" |
-| WhatsApp group | "What did I miss in the GSA group?" · "Tell the group I've booked the seminar hall for Friday 4pm" |
-| Discord | "Summarise the batch server since yesterday" · "Post in #announcements that the Gemini workshop moved to Saturday" |
-| Briefing | "Brief me" · a spoken morning briefing at 08:30 · alerts when program mail, new dashboard tasks or @mentions arrive |
-| Tasks & memory | "Add a task: share slides with Riya by Thursday 6pm" · "Remind me in 40 minutes to call the POC" · "Remember that Riya is my co-lead" |
-| PC | "Open Discord" · "Pause the music" · "System status" · "What's in my Downloads folder?" · "Run ipconfig" · "Lock the PC" |
-| Web | "Search for Gemini student ambassador report guidelines" · "Read this page: …" |
+| Post your work | "Send these photos to the GSA group: today's Gemini workshop" · "Post the recap in #announcements" · "Email the report to the POC" |
+| Undo | "Undo that" deletes the last Discord or WhatsApp post for everyone. Email can't be unsent. |
+| Mail | "Summarise my GSA mail from this week" · "Draft a reply saying I'll submit Thursday" |
+| Dashboard | "What's on my dashboard?" · "How many engagements this month?" · "Mark the photo task done" |
+| Chats | "What did I miss in the GSA group?" · "Summarise the batch Discord since yesterday" |
+| Briefing | "Brief me" · a spoken morning briefing at 08:30 · alerts for program mail, new tasks, @mentions |
+| Tasks & memory | "Add a task: slides to Riya by Thursday 6pm" · "Remind me in 40 minutes" · "Remember Riya is my co-lead" |
+| PC | "Open Discord" · "Pause the music" · "System status" · "Run ipconfig" · "Lock the PC" |
 
-DM the bot on Discord from your phone and it answers as Malice, with the same tools.
+**It posts straight away.** You asked for no confirmation step on email, Discord or WhatsApp.
+PowerShell commands outside a read-only list, and shutdown/restart, still ask first, because those
+protect the PC rather than slow down posting. To get a preview before email goes out, set
+`safety.confirm_email_send: true`.
 
-## The voice and personality
+## Using it from your phone
 
-The persona was researched from James Spader's Ultron. Whedon cast Spader for a voice that is
-"calm and compelling yet human and funny". Marvel said they "did not hire James Spader to do a
-robot voice": it was his natural delivery, with sound design layered on afterwards. Malice copies
-the recipe, **not the actor's voice** (cloning a real person's voice is off the table):
+The PC does the work, so **it has to be on and awake**. `setup.ps1` offers to turn off sleep on AC
+power. There are two ways in; use either or both.
 
-* **Delivery** (`malice/brain/persona.py`): measured, articulate, dry wit, one flourish at most,
-  never flustered, menacing toward inefficiency and loyal to you.
-* **Voice** (`malice/voice/tts.py`): Kokoro-82M, an Apache-2.0 model running locally on the CPU.
-  It blends the deep American male voices `am_onyx` and `am_michael` at 0.92 speed.
-* **Sound design** (`malice/voice/fx.py`): pitch down about 1.6 semitones, a quiet octave-down
-  double, a faint 46 Hz ring-mod shimmer, chorus doubling, low-shelf weight and a small metallic room.
-  Set `voice.menace` from `0` (clean) to `3` (full machine). Try it:
-  `.\.venv\Scripts\python.exe -m malice say "Your report is due Friday." --menace 3`
+**1. Discord DM (nothing to install).** DM your bot from the Discord app.
+* Text works like typing to Nova.
+* **Photos and files** you attach are saved to Nova's inbox. Say what to do with them, e.g.
+  "post these in the GSA group".
+* **Voice notes** are transcribed on your PC. The reply comes back as text plus a short spoken clip.
 
-### No AI slop
-* The system prompt bans the usual tells: "Certainly!", "I hope this finds you well", "delve",
-  "feel free to", emoji walls, em-dash chains.
-* `malice/brain/antislop.py` strips them from every reply. It also re-writes anything going to
-  other people (mail, Discord, WhatsApp) before you see the preview.
-* Anything sent in your name is written as **you**: a friendly, organised ambassador, never in
-  Malice's villain voice.
+**2. The phone app (private, over Tailscale).** You get the same HUD with a phone mic button and a
+paperclip for photos.
+1. `setup.ps1` installs Tailscale, a free private network for your own devices, and the wizard runs
+   `tailscale serve`. Your PC gets an address like `https://my-pc.tail1234.ts.net`. Only devices
+   signed in to *your* Tailscale account can open it.
+2. On the phone, install Tailscale from the app store and sign in with the same account.
+3. Open that address, enter your PIN, then use **Add to Home screen**.
+4. Tap the mic to talk and tap again to send, or tap the paperclip to attach photos.
+
+If `tailscale serve` complains about HTTPS, turn on **HTTPS certificates** in the Tailscale admin
+console (DNS page) and re-run `python -m nova setup`. The phone mic only works over https.
+
+Security:
+* The HUD only listens on `127.0.0.1`. Tailscale is the only way in from outside.
+* Every non-local request needs the PIN. After 5 wrong tries that device is locked out for 15 minutes.
+* Requests with any other hostname are refused.
+* Attachments can only come from Nova's inbox (things you sent from the phone), so a misheard
+  request can't send arbitrary files from the PC.
+
+## Voice and personality
+
+* **Personality** (`nova/brain/persona.py`): modelled on FRIDAY, voiced by Kerry Condon in her own
+  Irish accent, who took over from JARVIS as a direct, warm operations assistant. Nova leads with
+  the status and keeps it short, with a bit of cheek when things are calm. It always calls you
+  **Sir** (`assistant.address_as`), and a final check adds "Sir" if the model forgets.
+* **Voice** (`nova/voice/tts.py`): Kokoro-82M (Apache-2.0) running locally, a blend of the warm
+  British female voices `bf_emma` and `bf_isabella` at a brisk 1.05 speed. No free local model has
+  an Irish voice, so this is the closest warm, quick option. It doesn't imitate the actress.
+  To audition others: `python -m nova say "Morning, Sir." --voice bf_isabella`
+  (also `bf_emma`, `bf_alice`, `bf_lily`).
+* **No AI slop:** filler like "Certainly!", "I hope this finds you well", "delve" and "feel free to"
+  is banned in the prompt and stripped by `nova/brain/antislop.py`. Anything posted in your name is
+  rewritten to sound like you, not like Nova.
 
 ## Install (Windows 11, about 20 minutes, mostly downloads)
 
-1. Download this repo (Code → Download ZIP, or `git clone`) to e.g. `C:\MALICE`.
-2. Right-click `setup.ps1` → **Run with PowerShell**, or run:
-   ```
-   powershell -ExecutionPolicy Bypass -File .\setup.ps1
-   ```
-   It installs Python 3.12, Node.js and Ollama with winget, all Python and Node packages, the voice
-   models and `qwen3:8b`, then starts a wizard that asks for the details below.
-3. Sign in to the dashboard once: `.\.venv\Scripts\python.exe -m malice login-dashboard`
-4. Double-click **MALICE** on the desktop. The HUD opens; scan the WhatsApp QR the first time.
-5. Anything not working? `.\.venv\Scripts\python.exe -m malice doctor` names each problem and its fix.
+1. Download this repo to e.g. `C:\NOVA`.
+2. Run `powershell -ExecutionPolicy Bypass -File .\setup.ps1`. It installs Python 3.12, Node.js,
+   Ollama and Tailscale via winget, then the packages, the voice models and `qwen3:8b`. Then it runs
+   a wizard for the details below.
+3. Sign in to the dashboard once: `.\.venv\Scripts\python.exe -m nova login-dashboard`
+4. Double-click **NOVA** on the desktop and scan the WhatsApp QR the first time.
+5. Run `.\.venv\Scripts\python.exe -m nova doctor` whenever something seems off. It names the problem and the fix.
 
-### What the wizard asks for
+**Secrets (passwords, tokens, PIN) go into the wizard or `.env` on your PC, never into a chat.**
+What you can safely share is non-secret: addresses, channel names, group names.
 
-<details><summary><b>Gmail App Password</b> (2 minutes)</summary>
+<details><summary><b>Mail: your inbox and the official address you send from</b></summary>
 
-1. Turn on 2-Step Verification for the Google account that gets GSA mail.
-2. Open https://myaccount.google.com/apppasswords, create one called "Malice", and copy the 16 letters.
-3. In Gmail → Settings → Forwarding and POP/IMAP, make sure IMAP is enabled.
+* **Reading:** `GMAIL_ADDRESS` + an App Password for the inbox that receives GSA mail.
+  Turn on 2-Step Verification, create the password at https://myaccount.google.com/apppasswords,
+  and make sure IMAP is on in Gmail settings.
+* **Sending:** set `OFFICIAL_MAIL_ADDRESS` if you send from a different (official) address. If
+  it's a normal Gmail, give it an App Password too.
+* **College / Workspace accounts often block App Passwords.** Use OAuth instead (free):
+  1. In https://console.cloud.google.com create a project, enable the **Gmail API**, then add an
+     **OAuth client ID** of type *Desktop app*. Download the JSON as `data/google_oauth_client.json`.
+  2. Under *OAuth consent screen*, add your address as a test user.
+  3. Set `gmail.official_auth: oauth` in `config.yaml` (or `gmail.auth: oauth` for the reading
+     inbox), then run `python -m nova login-mail` once.
 
-Malice reads mail over IMAP and sends over SMTP. Drafts it writes appear in your Gmail **Drafts** folder.
-Tune what counts as GSA mail with `gmail.gsa_query` in `config.yaml`, written exactly like a Gmail
-search (add your program manager's address there).
+  If your college admin blocks third-party apps entirely, Google won't allow either route. In that
+  case, forward GSA mail to a personal Gmail and send from that.
+* `gmail.sender_name` sets the name people see. Drafts go to Gmail **Drafts**. Sent mail is
+  plain text plus attachments.
 </details>
 
-<details><summary><b>Discord bot</b> (5 minutes)</summary>
+<details><summary><b>Discord bot (posts under your name)</b></summary>
 
-1. https://discord.com/developers/applications → **New Application** → name it *Malice*.
-2. **Bot** tab → **Reset Token** → copy it (the wizard asks for it).
-   On the same page enable **Message Content Intent**.
-3. Invite it to your batch server. Open this URL with your Application ID from the General
-   Information tab: `https://discord.com/oauth2/authorize?client_id=YOUR_APP_ID&scope=bot&permissions=68608`
-   (View Channels, Send Messages, Read Message History).
-4. Discord → Settings → Advanced → **Developer Mode** on. Right-click the server → *Copy Server ID*,
-   then right-click yourself → *Copy User ID*. The wizard asks for both.
+1. At https://discord.com/developers/applications click **New Application**, then on the **Bot** tab
+   **Reset Token** and copy it. Turn on **Message Content Intent**.
+2. Invite it with your Application ID:
+   `https://discord.com/oauth2/authorize?client_id=YOUR_APP_ID&scope=bot&permissions=536939520`
+   (View Channels, Send Messages, Read Message History, **Manage Webhooks**).
+3. Turn on Developer Mode in Discord. Copy your **Server ID** and your own **User ID** for the wizard.
+
+Posts go through a channel webhook, so they show **your name and avatar** (Discord adds a small
+APP tag). If the bot lacks Manage Webhooks in a channel, it posts as itself there. Posting from
+your personal account itself (a "self-bot") isn't supported: Discord bans accounts for it.
+DMs you send the bot become commands to Nova.
 </details>
 
-<details><summary><b>WhatsApp</b> (1 minute, read this first)</summary>
+<details><summary><b>WhatsApp (sends from your own number)</b></summary>
 
-The bridge links your WhatsApp as a **linked device**, the same mechanism as WhatsApp Web, using the
-open-source Baileys library. It runs only on `127.0.0.1` and stores the session in `data/whatsapp`.
+A local bridge links your WhatsApp as a **linked device**, like WhatsApp Web, using the
+open-source Baileys library. It listens only on `127.0.0.1` and stores the session in `data/whatsapp`.
+It can send text, photos (with captions) and documents to the group, and delete its own recent
+messages for undo.
 
-**This is unofficial and against WhatsApp's Terms of Service.** There is a small risk of the number
-being restricted, especially with bulk or spammy sending. Keep usage human-sized. You chose
-auto-send, so `wa_send` goes out without a confirm step. Set `safety.confirm_whatsapp_send: true`
-if you change your mind.
-
-To link: start Malice. A QR code appears in the HUD's Systems panel and in the bridge window. Scan it
-from WhatsApp → Settings → Linked devices → Link a device. To unlink, remove it in WhatsApp, or delete
-`data/whatsapp/auth`.
+**This is unofficial and against WhatsApp's Terms of Service.** There's a small risk of the number
+being restricted, especially with bulk or spammy sending, so keep it human-sized.
+To link, scan the QR shown in the HUD or the bridge window via WhatsApp → Settings → Linked devices.
 </details>
 
 <details><summary><b>Ambassador dashboard</b></summary>
 
-Put the dashboard URL in `config.yaml` (`dashboard.url`) and run `malice login-dashboard`. A browser
-window opens: sign in with Google, then close it. Malice keeps that profile in `data/browser-profile`
-and reads the dashboard headlessly from then on. The local model turns the page into a task list, so
-it copes with whatever layout the web app has. New tasks trigger an alert.
+Set `dashboard.url` and run `python -m nova login-dashboard` once. Sign in with Google, then close
+the window. After that Nova reads the dashboard in the background, turns it into a task list, and
+alerts you to new tasks.
 
-**If Google refuses the sign-in** ("this browser may not be secure"), attach Malice to your normal
-Chrome instead:
-1. Close Chrome, then start it with `chrome.exe --remote-debugging-port=9222` and sign in to the
-   dashboard normally.
-2. Set `dashboard.cdp_url: http://127.0.0.1:9222`.
+If Google refuses the sign-in, start Chrome with `--remote-debugging-port=9222`, sign in there,
+and set `dashboard.cdp_url: http://127.0.0.1:9222`.
 </details>
 
-## Using it
+## At the PC
 
-* **Voice:** say **"Malice, …"** and keep talking. After it answers you have about 7 seconds for a
-  follow-up without the wake word. Or press **Ctrl+Alt+M** (or the mic button) to talk. Pressing it
-  while Malice is speaking cuts it off.
-* **Type:** in the HUD, or in a terminal: `.\.venv\Scripts\python.exe -m malice chat`.
-* **Approvals:** emails, Discord posts, non-read-only PowerShell commands, overwriting files, and
-  sleep/restart/shutdown all show the exact text first and wait for "yes".
-* **Knowledge:** put program facts in `knowledge/gsa.md` (POC, targets, deadlines). Malice reads
-  that folder on every turn.
+* **Voice:** say **"Nova, …"**. After it answers you have about 7 seconds for a follow-up without the
+  wake word. **Ctrl+Alt+M** (or the mic button) talks, or cuts it off mid-sentence.
+* **Typing:** use the HUD, or the terminal: `python -m nova chat`.
+* **Knowledge:** put program facts (POC, targets, deadlines) in `knowledge/gsa.md`.
 
-## Hardware notes (RTX 5060, 8 GB)
+## Hardware (RTX 5060, 8 GB)
 
 | Part | Runs on | VRAM |
 |---|---|---|
 | Qwen3-8B (Q4) via Ollama | GPU | ~5.5 GB |
-| Whisper `small.en` (STT) | GPU (float16), automatic CPU fallback | ~0.6 GB |
+| Whisper `small.en` (speech in) | GPU float16, automatic CPU fallback | ~0.6 GB |
 | Whisper `tiny.en` (wake word) | CPU | 0 |
-| Kokoro-82M + effects (TTS) | CPU, faster than real time | 0 |
+| Kokoro-82M (speech out) | CPU, faster than real time | 0 |
 
-* RTX 50 (Blackwell) needs CUDA 12.8-era software. Ollama's Windows build handles that itself.
-  For Whisper, Malice runs a test decode on the GPU at startup and quietly drops to CPU int8 if the
-  kernels are missing; `doctor` shows which one it used. Keep the NVIDIA driver current.
-* VRAM tight (games open)? Set `llm.model: qwen3:4b` and/or `voice.stt_device: cpu`.
+RTX 50 cards need CUDA 12.8-era software. Ollama handles that itself. Whisper test-runs on the
+GPU at startup and quietly falls back to CPU if needed; `doctor` shows which it used. If VRAM is
+tight, set `llm.model: qwen3:4b`.
 
 ## Layout
 
 ```
-malice/
-  brain/      agent loop, persona, anti-slop, Ollama client, SQLite memory
+nova/
+  brain/      agent loop, persona, anti-slop (+ "Sir"), Ollama client, SQLite memory
   tools/      every capability the model can call (one @tool function each)
-  connectors/ gmail_imap, dashboard_browser, discord_bot, whatsapp_client
-  voice/      VAD + wake word + Whisper STT, Kokoro TTS + effects, the voice loop
-  server/     FastAPI + WebSocket HUD
-  scheduler.py  mail/dashboard/WhatsApp alerts, reminders, morning briefing
+  connectors/ gmail_imap (+ google_oauth), dashboard_browser, discord_bot, whatsapp_client
+  voice/      VAD + wake word + Whisper, Kokoro TTS, the voice loop
+  server/     HUD + phone app (FastAPI, WebSocket, PIN gate, uploads, voice notes)
+  scheduler.py  alerts, reminders, morning briefing
 whatsapp-bridge/  Node + Baileys linked-device bridge (127.0.0.1:3777)
-knowledge/        notes Malice reads every turn
-data/             your database, logs, models, browser profile, WhatsApp session (git-ignored)
+knowledge/        notes Nova reads every turn
+data/             database, logs, models, inbox, sessions (git-ignored; keep private)
 ```
-
-**Adding a capability:** write an async function in `malice/tools/` with `@tool(...)` and it
-becomes callable. Add keywords to `ROUTES` in `brain/agent.py` so the router offers it.
-
-## Privacy
-
-Everything runs locally: the language model, speech recognition, the voice, the database and the
-browser profile. Network traffic goes only to the services themselves (Gmail, Discord, WhatsApp, the
-dashboard) and to DuckDuckGo when you ask for a web search. `.env`, `config.yaml` and `data/` are
-git-ignored; don't share them.
 
 ## Development
 

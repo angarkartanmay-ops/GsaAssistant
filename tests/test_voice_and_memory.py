@@ -3,15 +3,15 @@ import time
 import numpy as np
 import pytest
 
-from malice.brain.memory import Memory
-from malice.voice.fx import chime, menace_fx
-from malice.voice.tts import parse_blend, split_sentences
-from malice.voice.vad import EnergyVAD, Segmenter
+from nova.brain.memory import Memory
+from nova.voice.fx import chime, normalize
+from nova.voice.tts import parse_blend, split_sentences
+from nova.voice.vad import EnergyVAD, Segmenter
 
 
 def test_blend_parsing_normalises():
-    b = parse_blend("am_onyx:3, am_michael:1")
-    assert b == [("am_onyx", 0.75), ("am_michael", 0.25)]
+    b = parse_blend("bf_emma:3, bf_isabella:1")
+    assert b == [("bf_emma", 0.75), ("bf_isabella", 0.25)]
 
 
 def test_sentence_split_keeps_long_sentences_bounded():
@@ -19,13 +19,23 @@ def test_sentence_split_keeps_long_sentences_bounded():
     assert parts[0] == "Short one." and all(len(p) <= 221 for p in parts)
 
 
-def test_fx_is_bypassed_at_zero_and_bounded_otherwise():
-    sr = 24000
-    x = (0.3 * np.sin(2 * np.pi * 220 * np.arange(sr) / sr)).astype(np.float32)
-    assert np.array_equal(menace_fx(x, sr, 0), x)
-    y = menace_fx(x, sr, 2.0)
-    assert y.dtype == np.float32 and np.abs(y).max() <= 0.9 and len(y) >= sr * 0.95
+def test_voice_is_clean_no_effects_chain():
+    import nova.voice.fx as fx
+    from nova.config import VoiceCfg
+    assert not hasattr(fx, "menace_fx") and "menace" not in VoiceCfg.model_fields
+    cfg = VoiceCfg()
+    assert cfg.tts_voice.startswith("bf_") and cfg.tts_lang == "en-gb"
+    x = (0.3 * np.sin(np.arange(2400) / 5)).astype(np.float32)
+    assert abs(float(np.abs(normalize(x)).max()) - 0.89) < 1e-3
     assert len(chime()) > 0
+
+
+def test_persona_calls_him_sir():
+    from nova.brain.persona import GREETINGS, system_prompt
+    from nova.config import Config
+    p = system_prompt(Config(), [], "text")
+    assert 'Address him as "Sir"' in p and "FRIDAY" not in p
+    assert all("{address}" in g for g in GREETINGS)
 
 
 def test_segmenter_emits_one_utterance():
@@ -60,7 +70,7 @@ def test_memory_tasks_reminders_seen(tmp_path):
 
 @pytest.mark.asyncio
 async def test_reminder_tool_parses_natural_time(make_rt):
-    from malice.tools.core import remind_me
+    from nova.tools.core import remind_me
     rt = make_rt()
     out = await remind_me(rt, "in 20 minutes", "check the form")
     assert out.startswith("Reminder #") and rt.memory.upcoming_reminders(3600)

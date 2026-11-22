@@ -13,19 +13,21 @@ uvicorn[standard]>=0.30
 discord.py>=2.4
 playwright>=1.47
 ddgs>=9.0
+google-auth-oauthlib>=1.2 # only used if an official mail account needs OAuth instead of an App Password
+python-multipart>=0.0.9   # phone uploads (photos, voice)
 # Voice
 numpy>=1.26
 sounddevice>=0.5
 soundfile>=0.12
 onnxruntime>=1.18
 faster-whisper>=1.2       # CTranslate2 >= 4.5 has CUDA 12 builds that run on RTX 50 (Blackwell)
+av>=11,<19                # av 19 dropped an argument faster-whisper 1.2 still passes when decoding voice notes
 kokoro-onnx>=0.6
-pedalboard>=0.9
 # Windows extras
 keyboard>=0.13 ; sys_platform == "win32"
 win11toast>=0.35 ; sys_platform == "win32"
 pystray>=0.19
 pillow>=10.0
-# CUDA libraries for faster-whisper on the GPU (Windows); malice adds them to the DLL path itself
+# CUDA libraries for faster-whisper on the GPU (Windows); nova adds them to the DLL path itself
 nvidia-cublas-cu12 ; sys_platform == "win32"
 nvidia-cudnn-cu12>=9,<10 ; sys_platform == "win32"

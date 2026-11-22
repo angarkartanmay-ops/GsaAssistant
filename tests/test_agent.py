@@ -1,11 +1,11 @@
 import pytest
 
-from malice.brain.agent import route_groups
-from malice.tools.registry import REGISTRY
+from nova.brain.agent import route_groups
+from nova.tools.registry import REGISTRY
 
 
 def test_tool_schemas_are_valid():
-    import malice.tools  # noqa: F401
+    import nova.tools  # noqa: F401
     names = set(REGISTRY.tools)
     for expected in ["gsa_mail_digest", "dashboard_tasks", "discord_read", "discord_post", "wa_read",
                      "wa_send", "daily_briefing", "remind_me", "run_powershell", "open_app", "web_search"]:
@@ -30,8 +30,8 @@ def test_routing_narrows_tools():
 async def test_plain_reply_is_cleaned_and_saved(make_rt):
     rt = make_rt(["Certainly! Your inbox is quiet."])
     reply = await rt.ask("anything new?")
-    assert reply == "Your inbox is quiet."
-    assert rt.memory.recent_messages()[-1]["content"] == "Your inbox is quiet."
+    assert reply == "Your inbox is quiet, Sir."
+    assert rt.memory.recent_messages()[-1]["content"] == "Your inbox is quiet, Sir."
 
 
 @pytest.mark.asyncio
@@ -56,7 +56,7 @@ async def test_tool_call_loop(make_rt):
 async def test_confirm_gate_stages_then_sends(make_rt):
     sent = []
 
-    async def fake_post(channel, text):
+    async def fake_post(channel, text, files=None):
         sent.append((channel, text))
         return f"Posted in #{channel}"
 
@@ -64,6 +64,7 @@ async def test_confirm_gate_stages_then_sends(make_rt):
                   "Post this in #general: 'Workshop moved to 5pm.'? Yes or no.",
                   "Posted."])
     rt.discord.post = fake_post
+    rt.cfg.safety.confirm_discord_post = True
     q = await rt.ask("tell the batch on discord the workshop moved to 5pm")
     assert "Workshop moved to 5pm." in q and "Post it?" in q
     assert sent == [] and rt.agent.pending is not None
@@ -76,7 +77,7 @@ async def test_confirm_gate_stages_then_sends(make_rt):
 async def test_confirmed_action_runs_once_without_another_llm_turn(make_rt):
     sent = []
 
-    async def fake_post(channel, text):
+    async def fake_post(channel, text, files=None):
         sent.append(text)
         return f"Posted in #{channel}"
 
@@ -85,10 +86,11 @@ async def test_confirmed_action_runs_once_without_another_llm_turn(make_rt):
                   # If the agent wrongly asked the model again, it would stage a second post:
                   {"tool": "discord_post", "args": {"channel": "general", "message": "Hall booked."}}])
     rt.discord.post = fake_post
+    rt.cfg.safety.confirm_discord_post = True
     await rt.ask("tell discord the hall is booked")
     calls_before = len(rt.llm.calls)
     reply = await rt.ask("yes")
-    assert reply == "Done. Posted in #general"
+    assert reply == "Done, Sir. Posted in #general"
     assert sent == ["Hall booked."] and rt.agent.pending is None
     assert len(rt.llm.calls) == calls_before
 
@@ -99,12 +101,13 @@ async def test_announcing_instead_of_acting_gets_nudged(make_rt):
                   {"tool": "list_tasks", "args": {}},
                   "No tasks on file, so nothing is due."])
     reply = await rt.ask("anything due?")
-    assert reply == "No tasks on file, so nothing is due."
+    assert reply == "No tasks on file, so nothing is due, Sir."
 
 
 @pytest.mark.asyncio
 async def test_confirm_gate_cancel(make_rt):
     rt = make_rt([{"tool": "discord_post", "args": {"channel": "general", "message": "hi"}}, "Send it?"])
+    rt.cfg.safety.confirm_discord_post = True
     await rt.ask("post hi on discord")
     reply = await rt.ask("no")
     assert "Cancelled" in reply and rt.agent.pending is None
@@ -114,7 +117,7 @@ async def test_confirm_gate_cancel(make_rt):
 async def test_whatsapp_send_is_auto_by_default(make_rt):
     sent = []
 
-    async def fake_send(group, text):
+    async def fake_send(group, text, files=None):
         sent.append(text)
         return "Sent to GSA Batch 2026."
 
@@ -130,6 +133,7 @@ async def test_outbound_message_is_polished_before_staging(make_rt):
                    "args": {"channel": "general", "message": "I hope this message finds you well! Let's delve into Friday's workshop."}},
                   "Send it?"],
                  completer=lambda p: "Friday's workshop is on, see you all there.")
+    rt.cfg.safety.confirm_discord_post = True
     await rt.ask("post about the friday workshop in discord")
     assert rt.agent.pending.args["message"] == "Friday's workshop is on, see you all there."
 
@@ -142,7 +146,7 @@ async def test_unknown_tool_does_not_crash(make_rt):
 
 @pytest.mark.asyncio
 async def test_shell_confirm_policy(make_rt):
-    from malice.tools.system import shell_needs_confirm
+    from nova.tools.system import shell_needs_confirm
     rt = make_rt()
     assert not shell_needs_confirm(rt, command="Get-Process | Select -First 5")
     assert shell_needs_confirm(rt, command="Remove-Item C:\\temp -Recurse")

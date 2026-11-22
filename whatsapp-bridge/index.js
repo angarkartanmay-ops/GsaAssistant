@@ -1,4 +1,4 @@
-// M.A.L.I.C.E. WhatsApp bridge.
+// N.O.V.A. WhatsApp bridge.
 // Links your WhatsApp as a "linked device" (like WhatsApp Web) using Baileys, keeps a local
 // store of recent messages, and exposes a tiny HTTP API on 127.0.0.1 for the Python side.
 //
@@ -10,7 +10,8 @@
 //   GET  /qr                          -> { qr, dataUrl }  (scan in WhatsApp > Linked devices)
 //   GET  /groups                      -> [{ id, name, participants }]
 //   GET  /messages?chat=&since=&limit -> [{ id, chat, chatName, sender, text, ts, fromMe }]
-//   POST /send { chat, text }         -> { ok, id }
+//   POST /send { chat, text, file? }  -> { ok, id }   (file must be in data/inbox)
+//   POST /delete { chat, id }         -> { ok }       (delete for everyone, own recent sends only)
 //
 // Every request needs the header  x-bridge-token: <WA_BRIDGE_TOKEN>  when that env var is set.
 
@@ -153,6 +154,42 @@ async function connect() {
   sock.ev.on('groups.update', () => refreshGroups());
 }
 
+const INBOX = path.join(ROOT, 'data', 'inbox');
+const sentKeys = [];
+const MIME = {
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif',
+  '.pdf': 'application/pdf', '.mp4': 'video/mp4', '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.txt': 'text/plain',
+};
+
+function validJid(chat) {
+  return Boolean(isJidGroup(chat) || chat.endsWith('@s.whatsapp.net') || chat.endsWith('@lid'));
+}
+
+// Only files in data/inbox (things you sent from your phone) can go out.
+export function inboxFile(file, inbox = INBOX) {
+  const resolved = path.resolve(inbox, path.basename(String(file)));
+  const full = path.resolve(String(file));
+  const pick = full.startsWith(path.resolve(inbox) + path.sep) ? full : resolved;
+  if (!pick.startsWith(path.resolve(inbox) + path.sep)) throw new Error('file must be in data/inbox');
+  if (!fs.existsSync(pick)) throw new Error(`no inbox file ${path.basename(pick)}`);
+  return pick;
+}
+
+export function buildContent(text, file, inbox = INBOX) {
+  if (!file) return { text };
+  const p = inboxFile(file, inbox);
+  const ext = path.extname(p).toLowerCase();
+  const mimetype = MIME[ext] || 'application/octet-stream';
+  const data = fs.readFileSync(p);
+  const caption = text || undefined;
+  if (mimetype.startsWith('image/') && ext !== '.gif') return { image: data, caption, mimetype };
+  if (mimetype.startsWith('video/')) return { video: data, caption, mimetype };
+  const fileName = path.basename(p).replace(/^\d{10,}_/, '');
+  return { document: data, fileName, mimetype, caption };
+}
+
 function send(res, code, body) {
   res.writeHead(code, { 'content-type': 'application/json' });
   res.end(JSON.stringify(body));
@@ -201,15 +238,36 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, filterMessages(store, state.groups, { chat, since, limit }));
     }
     if (url.pathname === '/send' && req.method === 'POST') {
-      const { chat, text } = await readBody(req);
-      if (!state.connected) return send(res, 503, { error: 'WhatsApp not connected' });
-      if (!chat || !text) return send(res, 400, { error: 'chat and text are required' });
-      if (!isJidGroup(chat) && !chat.endsWith('@s.whatsapp.net') && !chat.endsWith('@lid')) {
-        return send(res, 400, { error: 'chat must be a WhatsApp JID' });
+      const { chat, text, file } = await readBody(req);
+      if (!chat || (!text && !file)) return send(res, 400, { error: 'chat and text (or file) are required' });
+      if (!validJid(chat)) return send(res, 400, { error: 'chat must be a WhatsApp JID' });
+      let content;
+      try {
+        content = buildContent(String(text || '').slice(0, 4000), file);
+      } catch (e) {
+        return send(res, 400, { error: String(e.message || e) });
       }
-      const sent = await state.sock.sendMessage(chat, { text: String(text).slice(0, 4000) });
-      if (sent) remember(sent);
+      if (!state.connected) return send(res, 503, { error: 'WhatsApp not connected' });
+      const sent = await state.sock.sendMessage(chat, content);
+      if (sent) {
+        remember(sent);
+        sentKeys.push(sent.key);
+        if (sentKeys.length > 30) sentKeys.shift();
+      }
       return send(res, 200, { ok: true, id: sent?.key?.id });
+    }
+    if (url.pathname === '/delete' && req.method === 'POST') {
+      // Delete-for-everyone of a message this bridge sent (used by Nova's undo).
+      const { chat, id } = await readBody(req);
+      const key = sentKeys.find((k) => k.id === id && k.remoteJid === chat);
+      if (!key) return send(res, 404, { error: 'not a message this bridge sent recently' });
+      if (!state.connected) return send(res, 503, { error: 'WhatsApp not connected' });
+      await state.sock.sendMessage(chat, { delete: key });
+      sentKeys.splice(sentKeys.indexOf(key), 1);
+      const list = store[chat] || [];
+      const i = list.findIndex((m) => m.id === id);
+      if (i >= 0) { list.splice(i, 1); saveSoon(); }
+      return send(res, 200, { ok: true });
     }
     send(res, 404, { error: 'not found' });
   } catch (e) {

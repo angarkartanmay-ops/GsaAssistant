@@ -1,6 +1,6 @@
-# GSA notes (Malice reads this file; edit it freely)
+# GSA notes (Nova reads this file; edit it freely)
 
-Everything in this folder is added to Malice's context, so keep it short and factual.
+Everything in this folder is added to Nova's context, so keep it short and factual.
 
 ## The program
 - I'm a Google Student Ambassador (GSA). The work is about getting students on campus to use

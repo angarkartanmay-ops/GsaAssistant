@@ -4,10 +4,10 @@ from email.message import EmailMessage
 import httpx
 import pytest
 
-from malice.config import WhatsAppCfg
-from malice.connectors.gmail_imap import Mail, parse_fetch
-from malice.connectors.whatsapp_client import WhatsAppClient, WhatsAppError
-from malice.voice.wake import match_wake
+from nova.config import WhatsAppCfg
+from nova.connectors.gmail_imap import Mail, parse_fetch
+from nova.connectors.whatsapp_client import WhatsAppClient, WhatsAppError
+from nova.voice.wake import match_wake
 
 
 def _raw_mail(subject, body, sender="Program Team <gsa-team@google.com>"):
@@ -35,7 +35,7 @@ def test_parse_fetch_reads_imap_tuples():
 
 @pytest.mark.asyncio
 async def test_mail_digest_groups_and_falls_back(make_rt):
-    from malice.tools.gmail import format_digest, heuristic_digest
+    from nova.tools.gmail import format_digest, heuristic_digest
 
     def mk(i, sender, subject, body, unread=False):
         return Mail(uid=i, msgid="10" + i, thread_id="10" + i, sender=sender, to="", subject=subject,
@@ -56,15 +56,15 @@ async def test_mail_digest_groups_and_falls_back(make_rt):
         {"id": "102", "category": "noise", "summary": "Newsletter", "due": None},
         {"id": "103", "category": "action", "summary": "Priya needs the room confirmed", "due": None}]}))
     rt.gmail.gsa_mails = lambda days, unread_only=False, limit=None: mails
-    from malice.tools.gmail import gsa_mail_digest
+    from nova.tools.gmail import gsa_mail_digest
     out = await gsa_mail_digest(rt, days=3)
     assert "Event report due Friday (due Fri)" in out and "Priya needs the room confirmed" in out
 
 
 @pytest.mark.asyncio
 async def test_dashboard_extraction_and_sync(make_rt):
-    from malice.connectors.dashboard_browser import PageDump
-    from malice.tools.dashboard import dashboard_tasks
+    from nova.connectors.dashboard_browser import PageDump
+    from nova.tools.dashboard import dashboard_tasks
 
     reply = json.dumps({"tasks": [
         {"title": "Host a Gemini learning session", "due": "2026-11-30", "status": "open", "points": "50", "link": None},
@@ -124,12 +124,12 @@ async def test_whatsapp_bridge_down_gives_clear_error():
 
 
 @pytest.mark.parametrize("heard,woke,rest", [
-    ("Malice, summarise the GSA group.", True, "summarise the GSA group."),
-    ("Hey Malice what's on my dashboard", True, "what's on my dashboard"),
-    ("Mal ice brief me", True, "brief me"),
-    ("Malis.", True, ""),
+    ("Nova, summarise the GSA group.", True, "summarise the GSA group."),
+    ("Hey Nova what's on my dashboard", True, "what's on my dashboard"),
+    ("No va brief me", True, "brief me"),
+    ("Novah.", True, ""),
     ("I told Riya about the meeting", False, ""),
 ])
 def test_wake_matching(heard, woke, rest):
-    w, r = match_wake(heard, ["malice", "malis", "mallis", "malise", "alice"])
+    w, r = match_wake(heard, ["nova", "novah", "nover"])
     assert w == woke and r == rest

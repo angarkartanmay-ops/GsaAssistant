@@ -1,7 +1,7 @@
-# M.A.L.I.C.E. one-time setup for Windows 11.
+# N.O.V.A. one-time setup for Windows 11.
 # Run from this folder:  powershell -ExecutionPolicy Bypass -File .\setup.ps1
-# Installs (via winget, all free): Python 3.12, Node.js LTS, Ollama. Then Python packages,
-# the WhatsApp bridge, voice models, the LLM, and runs the setup wizard.
+# Installs (via winget, all free): Python 3.12, Node.js LTS, Ollama, Tailscale. Then Python
+# packages, the WhatsApp bridge, voice models, the LLM, and runs the setup wizard.
 
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
@@ -33,6 +33,12 @@ if (-not (Have node)) { Winget-Install "OpenJS.NodeJS.LTS" }
 Say "Checking Ollama"
 if (-not (Have ollama)) { Winget-Install "Ollama.Ollama" }
 
+Say "Checking Tailscale (private link so your phone can reach Nova when you're out)"
+if (-not (Have tailscale)) {
+    $answer = Read-Host "Install Tailscale for phone access? Free for personal use. (Y/n)"
+    if ($answer -notmatch '^[nN]') { Winget-Install "Tailscale.Tailscale" }
+}
+
 Say "Creating the Python environment (.venv)"
 if (-not (Test-Path ".venv\Scripts\python.exe")) { Invoke-Expression "$py -m venv .venv" }
 $vpy = ".\.venv\Scripts\python.exe"
@@ -57,13 +63,13 @@ if (Have nvidia-smi) {
 }
 
 Say "Setup wizard"
-& $vpy -m malice setup
+& $vpy -m nova setup
 
-$answer = Read-Host "`nStart Malice automatically when you log in? (y/N)"
+$answer = Read-Host "`nStart Nova automatically when you log in? (y/N)"
 if ($answer -match '^[yY]') {
     $startup = [Environment]::GetFolderPath("Startup")
     $shell = New-Object -ComObject WScript.Shell
-    $lnk = $shell.CreateShortcut((Join-Path $startup "MALICE.lnk"))
+    $lnk = $shell.CreateShortcut((Join-Path $startup "NOVA.lnk"))
     $lnk.TargetPath = (Join-Path $PSScriptRoot "start.bat")
     $lnk.WorkingDirectory = $PSScriptRoot
     $lnk.WindowStyle = 7
@@ -71,15 +77,25 @@ if ($answer -match '^[yY]') {
     Write-Host "Added to Startup."
 }
 
+Write-Host "`nNova runs on this PC. If the PC sleeps or shuts down, your phone can't reach it."
+$answer = Read-Host "Stop this PC from sleeping while plugged in? (y/N)"
+if ($answer -match '^[yY]') {
+    powercfg /change standby-timeout-ac 0
+    powercfg /change hibernate-timeout-ac 0
+    Write-Host "Sleep on AC power disabled (the screen can still turn off)."
+}
+
 $desk = [Environment]::GetFolderPath("Desktop")
 $shell = New-Object -ComObject WScript.Shell
-$lnk = $shell.CreateShortcut((Join-Path $desk "MALICE.lnk"))
+$lnk = $shell.CreateShortcut((Join-Path $desk "NOVA.lnk"))
 $lnk.TargetPath = (Join-Path $PSScriptRoot "start.bat")
 $lnk.WorkingDirectory = $PSScriptRoot
 $lnk.Save()
 
 Say "Done"
-Write-Host "1. Sign in to the ambassador dashboard once:  .\.venv\Scripts\python.exe -m malice login-dashboard"
-Write-Host "2. Double-click MALICE on your desktop (or start.bat)."
+Write-Host "1. Sign in to the ambassador dashboard once:  .\.venv\Scripts\python.exe -m nova login-dashboard"
+Write-Host "2. Double-click NOVA on your desktop (or start.bat)."
 Write-Host "3. Scan the WhatsApp QR shown in the HUD the first time."
-Write-Host "Health check any time:  .\.venv\Scripts\python.exe -m malice doctor"
+Write-Host "4. Phone: install Tailscale, sign in with the same account, open the https://...ts.net address"
+Write-Host "   the wizard printed, enter your PIN, then 'Add to Home screen'. Or just DM the bot on Discord."
+Write-Host "Health check any time:  .\.venv\Scripts\python.exe -m nova doctor"

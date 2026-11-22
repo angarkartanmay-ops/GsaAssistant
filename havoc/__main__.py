@@ -284,35 +284,13 @@ def cmd_setup(args: argparse.Namespace) -> None:
 
 
 def tailscale_host() -> str:
-    """This PC's Tailscale name, e.g. my-pc.tail1234.ts.net ('' if Tailscale isn't up)."""
-    exe = shutil.which("tailscale")
-    if not exe:
-        return ""
-    try:
-        out = subprocess.run([exe, "status", "--json"], capture_output=True, text=True, timeout=15).stdout
-        return json.loads(out).get("Self", {}).get("DNSName", "").rstrip(".")
-    except Exception:  # noqa: BLE001
-        return ""
+    from .tailscale import host
+    return host()
 
 
 def setup_tailscale(port: int) -> str:
-    exe = shutil.which("tailscale")
-    if not exe:
-        print("  Tailscale isn't installed (setup.ps1 installs it). Discord DMs still work from anywhere.")
-        return ""
-    if not tailscale_host():
-        print("  Signing this PC in to Tailscale (a browser window opens)...")
-        subprocess.run([exe, "up"])
-    host = tailscale_host()
-    if not host:
-        print("  Tailscale isn't signed in; skipping. Re-run setup later.")
-        return ""
-    r = subprocess.run([exe, "serve", "--bg", str(port)], capture_output=True, text=True)
-    if r.returncode != 0:
-        print(f"  `tailscale serve` failed: {(r.stderr or r.stdout).strip()}\n"
-              "  Turn on HTTPS certificates in the Tailscale admin console (DNS page), then re-run setup.")
-        return host
-    return host
+    from .tailscale import enable_phone_access
+    return enable_phone_access(port, say=lambda m: print("  " + m))
 
 
 # ---------------------------------------------------------------- doctor

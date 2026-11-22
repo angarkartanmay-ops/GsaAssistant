@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HAVOC</string>
+    <string name="tile_label">Talk to Havoc</string>
+    <string name="shortcut_talk">Talk to Havoc</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="talk"
+        android:enabled="true"
+        android:icon="@drawable/ic_tile"
+        android:shortcutShortLabel="@string/shortcut_talk">
+        <intent
+            android:action="dev.havoc.app.TALK"
+            android:targetPackage="dev.havoc.app"
+            android:targetClass="dev.havoc.app.TalkActivity" />
+    </shortcut>
+</shortcuts>

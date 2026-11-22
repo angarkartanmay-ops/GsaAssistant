@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>HAVOC</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<style>
+  :root { --bg:#0c0d10; --text:#e8eaef; --muted:#8a909c; --accent:#5cb4d9; --bad:#e06a70; }
+  html,body { height:100%; margin:0; background:var(--bg); color:var(--text); font:15px/1.5 "Segoe UI Variable","Segoe UI",system-ui,sans-serif; }
+  main { height:100%; display:grid; align-content:center; padding:0 12vw; gap:18px; }
+  .brand { font:600 15px ui-monospace,Consolas,monospace; letter-spacing:.34em; }
+  .ring { width:56px; height:56px; border-radius:50%; border:2px solid rgba(92,180,217,.18); border-top-color:var(--accent); animation:spin 1.1s linear infinite; }
+  p { margin:0; color:var(--muted); max-width:46ch; }
+  .err { color:var(--bad); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .ring { animation:none; } }
+</style></head>
+<body><main>
+  <div class="ring" aria-hidden="true"></div>
+  <div class="brand">H.A.V.O.C.</div>
+  <p id="msg">Waking up. Loading the brain takes a few seconds the first time, Sir. Patience is a virtue, allegedly.</p>
+</main>
+<script>
+  window.havocDesktop?.onSplashError((m) => { const el = document.getElementById("msg"); el.textContent = m; el.className = "err"; });
+</script>
+</body></html>

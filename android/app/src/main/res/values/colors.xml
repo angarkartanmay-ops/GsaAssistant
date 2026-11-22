@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ink">#0C0D10</color>
+    <color name="panel">#121419</color>
+    <color name="fog">#E8EAEF</color>
+    <color name="muted">#8A909C</color>
+    <color name="signal">#5CB4D9</color>
+    <color name="bad">#E06A70</color>
+</resources>

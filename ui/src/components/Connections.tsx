@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowClockwise, ArrowSquareOut, CheckCircle, CircleNotch, Desktop, GoogleLogo, LockKey, X } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowSquareOut, CheckCircle, CircleNotch, Desktop, DeviceMobile, GoogleLogo, LockKey, X } from "@phosphor-icons/react";
 import { useEffect, useMemo, useState } from "react";
 import { api, ApiError, postJson, type SettingsView } from "../lib/api";
 
@@ -203,7 +203,7 @@ export function Connections({ onClose }: { onClose: () => void }) {
     window.setTimeout(poll, 2500);
   };
 
-  const connect = async (what: "dashboard" | "mail") => {
+  const connect = async (what: "dashboard" | "mail" | "phone") => {
     setNotice(null);
     try {
       const r = await postJson<{ message: string }>(`/api/connect/${what}`, {});
@@ -320,7 +320,13 @@ export function Connections({ onClose }: { onClose: () => void }) {
 
               <Group title="Phone" intro="Your phone reaches this PC through Tailscale; the PIN locks it if the phone is lost.">
                 <SecretField id="pin" label="Phone PIN" isSet={!!s["server.pin"]} value={secrets["server.pin"]} onChange={setSecret("server.pin")} error={errors["server.pin"]} />
-                <Field id="hosts" label="This PC's Tailscale name" value={f("server.remote_hosts")} onChange={set("server.remote_hosts")} placeholder="my-pc.tail1234.ts.net" hint={view.phone_url ? <>Phone address: <span className="font-mono text-fog-300">{view.phone_url}</span></> : "setup.ps1 fills this in."} />
+                <Field id="hosts" label="This PC's Tailscale name" value={f("server.remote_hosts")} onChange={set("server.remote_hosts")} placeholder="my-pc.tail1234.ts.net" hint={view.phone_url ? <>Phone address: <span className="font-mono text-fog-300">{view.phone_url}</span></> : "Filled in by the button below."} />
+                <div className="flex flex-col gap-2 sm:col-span-2">
+                  <button onClick={() => connect("phone")} className="tactile inline-flex items-center gap-2 self-start rounded-xl border border-white/[0.08] px-3.5 py-2.5 text-[13.5px] hover:bg-ink-800">
+                    <DeviceMobile size={16} /> Set up phone access
+                  </button>
+                  <p className="text-[12.5px] leading-relaxed text-fog-500">Signs this PC in to Tailscale (free) and publishes HAVOC privately. Then install Tailscale and the HAVOC app on your phone with the same account. The result shows up under Alerts.</p>
+                </div>
               </Group>
               <div className="h-6" />
             </>

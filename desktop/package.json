@@ -1,0 +1,93 @@
+{
+  "name": "havoc-desktop",
+  "productName": "HAVOC",
+  "version": "1.0.0",
+  "description": "H.A.V.O.C. desktop app: runs the assistant on this PC and shows its HUD.",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win nsis portable",
+    "dist:win-zip": "electron-builder --win zip"
+  },
+  "devDependencies": {
+    "electron": "45.4.1",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "dev.havoc.desktop",
+    "productName": "HAVOC",
+    "artifactName": "HAVOC-${version}-${arch}.${ext}",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "splash.html",
+      "setup.html",
+      "icon.png"
+    ],
+    "extraResources": [
+      {
+        "from": "../havoc",
+        "to": "backend/havoc",
+        "filter": [
+          "**/*",
+          "!**/__pycache__/**"
+        ]
+      },
+      {
+        "from": "../knowledge",
+        "to": "backend/knowledge"
+      },
+      {
+        "from": "../requirements.txt",
+        "to": "backend/requirements.txt"
+      },
+      {
+        "from": "../config.example.yaml",
+        "to": "backend/config.example.yaml"
+      },
+      {
+        "from": "../whatsapp-bridge",
+        "to": "backend/whatsapp-bridge",
+        "filter": [
+          "**/*",
+          "!data/**",
+          "!node_modules/**"
+        ]
+      },
+      {
+        "from": "setup-backend.ps1",
+        "to": "backend/setup-backend.ps1"
+      },
+      {
+        "from": "../whatsapp-bridge/node_modules",
+        "to": "backend/whatsapp-bridge/node_modules",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "icon": "icon.png",
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "HAVOC"
+    },
+    "portable": {
+      "artifactName": "HAVOC-${version}-portable.exe"
+    }
+  },
+  "repository": "github:angarkartanmay-ops/GsaAssistant"
+}

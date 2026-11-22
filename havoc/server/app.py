@@ -174,6 +174,9 @@ def create_app(rt: Any, gate: Optional[Gate] = None, on_restart: Optional[Any] =
             for addr in targets:
                 spawn(_run_login(rt, f"mail {addr}", asyncio.to_thread(
                     access_token, addr, rt.cfg.gmail.oauth_client_file, True)))
+        elif what == "phone":
+            spawn(_enable_phone(rt))
+            return JSONResponse({"ok": True, "message": "Setting up phone access. If Tailscale asks you to sign in, a browser window opens."})
         else:
             return JSONResponse({"error": f"Nothing to connect called {what}."}, status_code=404)
         return JSONResponse({"ok": True, "message": "A sign-in window is opening on the PC."})
@@ -305,6 +308,20 @@ def create_app(rt: Any, gate: Optional[Gate] = None, on_restart: Optional[Any] =
             rt.bus.unsubscribe(q)
 
     return app
+
+
+async def _enable_phone(rt: Any) -> None:
+    from ..settings import apply
+    from ..tailscale import enable_phone_access
+    notes: list[str] = []
+    try:
+        name = await asyncio.to_thread(enable_phone_access, rt.cfg.server.port, notes.append)
+        if name:
+            apply({"fields": {"server.remote_hosts": [name]}})
+            rt.cfg.server.remote_hosts = [name]
+    except Exception as e:  # noqa: BLE001
+        notes.append(f"Phone setup failed: {e}")
+    await rt.bus.publish({"type": "notify", "title": "Phone access", "body": " ".join(notes) or "Done."})
 
 
 async def _run_login(rt: Any, label: str, coro) -> None:  # noqa: ANN001

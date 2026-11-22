@@ -38,28 +38,44 @@ PowerShell commands outside a read-only list, and shutdown/restart, still ask fi
 protect the PC rather than slow down posting. To get a preview before email goes out, set
 `safety.confirm_email_send: true`.
 
-## Using it from your phone
+## The apps: one brain, three ways in
 
-The PC does the work, so **it has to be on and awake**. `setup.ps1` offers to turn off sleep on AC
-power. There are two ways in; use either or both.
+HAVOC's brain (the model, memory, accounts and conversation) runs on your PC. Every way of reaching
+it talks to that same brain, so they all share one conversation. Ask something on your phone and the
+PC window shows it; open the phone later and it has the whole thread, Discord DMs included.
 
-**1. Discord DM (nothing to install).** DM your bot from the Discord app.
-* Text works like typing to Havoc.
-* **Photos and files** you attach are saved to Havoc's inbox. Say what to do with them, e.g.
-  "post these in the GSA group".
-* **Voice notes** are transcribed on your PC. The reply comes back as text plus a short spoken clip.
+| | What it is | Get it |
+|---|---|---|
+| **HAVOC.exe** (Windows) | Runs the brain + WhatsApp bridge in the background, shows the HUD, lives in the tray, can start with Windows. | `HAVOC-1.0.0-portable.exe` (no install), or the installer from GitHub Actions |
+| **HAVOC.apk** (Android) | The same HUD on your phone, plus "Hey Havoc", a Quick Settings tile and a "Talk to Havoc" shortcut. | `app-release.apk` (sideload) |
+| **Discord DM** | Message your bot from anywhere: text, photos, voice notes. | Nothing to install |
 
-**2. The phone app (private, over Tailscale).** You get the same HUD with a phone mic button and a
-paperclip for photos.
-1. `setup.ps1` installs Tailscale, a free private network for your own devices, and the wizard runs
-   `tailscale serve`. Your PC gets an address like `https://my-pc.tail1234.ts.net`. Only devices
-   signed in to *your* Tailscale account can open it.
-2. On the phone, install Tailscale from the app store and sign in with the same account.
-3. Open that address, enter your PIN, then use **Add to Home screen**.
-4. Tap the mic to talk and tap again to send, or tap the paperclip to attach photos.
+The PC does the thinking, so **it has to be on and awake**; the setup offers to stop it sleeping on AC power.
 
-If `tailscale serve` complains about HTTPS, turn on **HTTPS certificates** in the Tailscale admin
-console (DNS page) and re-run `python -m havoc setup`. The phone mic only works over https.
+### Phone setup (once)
+1. On the PC: **Connections → Phone**. Set a PIN, then press **Set up phone access**. This signs the
+   PC in to Tailscale, a free private network between your own devices, and publishes HAVOC at an
+   address like `https://my-pc.tail1234.ts.net`. Only devices signed in to *your* Tailscale can open it.
+2. On the phone: install **Tailscale** from the Play Store and sign in with the same account.
+3. Install the **HAVOC APK**: open the file and allow "install unknown apps" for that one time.
+4. Open HAVOC, paste the PC address, enter the PIN. You get the same screen as on the PC.
+
+If Tailscale complains about HTTPS, turn on **HTTPS certificates** in the Tailscale admin console
+(DNS page) and press the button again. The phone mic needs https.
+
+### "Hey Havoc"
+* Turn it on under **Today → This phone** in the app, or in the app's phone settings. Say
+  **"Hey Havoc"**, wait for the beep, then speak. HAVOC answers in a notification and out loud.
+* It's HAVOC's own wake word, recognised **on the phone, offline** by Vosk. It downloads a 40 MB
+  speech model the first time. Nothing is sent anywhere until after the beep.
+* **Google Assistant is untouched.** HAVOC doesn't register as an assistant or change any Google
+  setting, and "Hey Google" keeps working. On a few phones the system pauses other apps' microphones
+  while Google is listening; HAVOC just resumes afterwards.
+* Listening all the time costs some battery. Use **Only while charging** if that bothers you. The
+  Quick Settings tile and the home-screen shortcut ("Talk to Havoc") work without the wake word.
+* Android requires a visible notification while any app listens; that's the "Listening for Hey
+  Havoc" notification. After a phone restart, open HAVOC once to resume listening (Android doesn't
+  let apps start the mic on their own at boot).
 
 Security:
 * The HUD only listens on `127.0.0.1`. Tailscale is the only way in from outside.
@@ -92,18 +108,30 @@ Security:
   is banned in the prompt and stripped by `havoc/brain/antislop.py`. Anything posted in your name is
   rewritten to sound like you, not like Havoc.
 
-## Install (Windows 11, about 20 minutes, mostly downloads)
+## Install (Windows 11)
 
-1. Download this repo to e.g. `C:\HAVOC`.
-2. Run `powershell -ExecutionPolicy Bypass -File .\setup.ps1`. It installs Python 3.12, Node.js,
-   Ollama and Tailscale via winget, then the packages, the voice models and `qwen3:8b`. Then it runs
-   a wizard for the details below.
-3. Sign in to the dashboard once: `.\.venv\Scripts\python.exe -m havoc login-dashboard`
-4. Double-click **HAVOC** on the desktop and scan the WhatsApp QR the first time.
-5. Run `.\.venv\Scripts\python.exe -m havoc doctor` whenever something seems off. It names the problem and the fix.
+**Easiest: the app.** Run `HAVOC-1.0.0-portable.exe`. The first launch installs Python, Ollama,
+Tailscale and the AI model (about 6 GB; a progress window shows each step), then HAVOC opens. Your
+settings and data live in `%LOCALAPPDATA%\HAVOC`, so replacing the app never touches them. The tray
+icon has **Start with Windows**, the data folder and the log.
 
-**Secrets (passwords, tokens, PIN) go into the wizard or `.env` on your PC, never into a chat.**
-What you can safely share is non-secret: addresses, channel names, group names.
+**From source** (for tinkering): `powershell -ExecutionPolicy Bypass -File .\setup.ps1`, then `start.bat`.
+
+### Connect your accounts
+Open **Connections** (top right in HAVOC, on the PC). Everything is entered there and saved only on
+this PC. Passwords and tokens go into `.env` and are never shown again, not even in Connections.
+Connections can't be opened from the phone, so a lost phone can't read or swap your keys.
+
+| Account | What to do |
+|---|---|
+| Inbox (reads GSA mail) | Address + a Gmail App Password (needs 2-Step Verification) |
+| Official address (sends) | Address + App Password, or **Sign in with Google** for college/Workspace accounts |
+| GSA dashboard | Paste the URL, press **Sign in on this PC**, log in once |
+| Discord | Bot token, server ID, your user ID; then use the **Invite the bot** link it shows |
+| WhatsApp | Scan the QR in Connections from WhatsApp → Linked devices |
+| Phone | PIN + **Set up phone access** |
+
+Press **Save**, then **Restart now**. Run `python -m havoc doctor` (or look at Today → Systems) to see what's connected.
 
 <details><summary><b>Mail: your inbox and the official address you send from</b></summary>
 
@@ -190,8 +218,13 @@ havoc/
   tools/      every capability the model can call (one @tool function each)
   connectors/ gmail_imap (+ google_oauth), dashboard_browser, discord_bot, whatsapp_client
   voice/      VAD + wake word + Whisper, Kokoro TTS, the voice loop
-  server/     HUD + phone app (FastAPI, WebSocket, PIN gate, uploads, voice notes)
+  server/     FastAPI + WebSocket, PIN gate, Connections API, uploads, voice notes
+  settings.py   Connections: config.yaml + .env (secrets write-only)
+  tailscale.py  phone access
   scheduler.py  alerts, reminders, morning briefing
+ui/               the interface (React + Tailwind + a procedural three.js core); builds into havoc/server/static/app
+desktop/          Electron app: HAVOC.exe (first-run setup, background brain + bridge, tray)
+android/          Kotlin app: HAVOC.apk (HUD WebView, "Hey Havoc" via Vosk, tile, shortcut)
 whatsapp-bridge/  Node + Baileys linked-device bridge (127.0.0.1:3777)
 knowledge/        notes Havoc reads every turn
 data/             database, logs, models, inbox, sessions (git-ignored; keep private)
@@ -204,3 +237,8 @@ pip install -r requirements-dev.txt
 pytest
 ```
 The tests use a scripted fake LLM and mock connectors, so they need no GPU, accounts or network.
+
+* UI: `cd ui && npm install && npm run dev` (proxies to a running HAVOC), `npm run build` to update the bundled copy.
+* Desktop: `cd desktop && npm install && npx electron-builder --win portable` (the NSIS installer needs Windows or Wine).
+* Android: `cd android && ./gradlew assembleRelease` (needs the Android SDK; set `sdk.dir` in `local.properties`).
+* Or run **Actions → Build apps** on GitHub to get the installer, portable exe and APK as downloads.

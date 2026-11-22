@@ -1,0 +1,20 @@
+# secrets and personal data
+.env
+config.yaml
+data/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# node
+whatsapp-bridge/node_modules/
+
+# misc
+*.wav
+*.log
+.DS_Store
+Thumbs.db

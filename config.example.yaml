@@ -1,0 +1,92 @@
+# M.A.L.I.C.E. settings. Copy to config.yaml (the setup wizard does this for you).
+# Secrets (Gmail App Password, Discord token) go in .env, never here.
+
+assistant:
+  name: M.A.L.I.C.E.
+  spoken_name: Malice
+  # The wake word, plus the ways Whisper tends to mishear it. Rename the assistant? Change all three.
+  wake_words: [malice, malis, mallis, malise, alice]
+  user_name: Tanmay
+  address_as: Tanmay          # what it calls you out loud
+
+llm:
+  host: http://127.0.0.1:11434
+  model: qwen3:8b             # ~5.5 GB VRAM on the RTX 5060. Tight on VRAM? use qwen3:4b
+  fallback_model: qwen3:4b
+  temperature: 0.6
+  num_ctx: 8192
+  history_turns: 16
+  timeout_s: 180
+
+voice:
+  enabled: true
+  wake_enabled: true          # say "Malice, ..." hands-free
+  push_to_talk_hotkey: ctrl+alt+m
+  stt_model: small.en         # better accuracy: medium.en (more VRAM); faster: base.en
+  wake_model: tiny.en
+  stt_device: auto            # auto tries the GPU first and falls back to CPU
+  follow_up_seconds: 7        # after it answers you can keep talking without the wake word
+  silence_ms: 750
+  vad_threshold: 0.5
+  input_device: null          # null = Windows default mic. Or a device name/number from `python -m sounddevice`
+  output_device: null
+  # The voice: a blend of Kokoro's deep American male voices, slowed a touch...
+  tts_voice: am_onyx:0.65,am_michael:0.35
+  tts_speed: 0.92
+  # ...then pushed through the effects chain. 0 = clean human voice, 3 = full synthetic menace.
+  menace: 2.0
+  kokoro_model: kokoro-v1.0.int8.onnx
+  kokoro_voices: voices-v1.0.bin
+  max_spoken_chars: 600
+
+gmail:
+  enabled: true
+  imap_host: imap.gmail.com
+  smtp_host: smtp.gmail.com
+  mailbox: '"[Gmail]/All Mail"'
+  # Written exactly like the Gmail search box. Add sender addresses of your program managers here.
+  gsa_query: '("Student Ambassador" OR "Gemini Student Ambassador" OR GSA OR from:google.com) -category:promotions'
+  max_results: 25
+
+dashboard:
+  enabled: true
+  url: ""                     # the ambassador web app page that lists your tasks
+  extra_urls: []              # other pages to read too (leaderboard, reports...)
+  browser_channel: msedge     # msedge is on every Windows 11 PC; chrome also works
+  profile_dir: data/browser-profile
+  cdp_url: ""                 # fallback: http://127.0.0.1:9222 (see README "Dashboard won't sign in")
+  wait_ms: 4000
+  refresh_minutes: 60
+
+discord:
+  enabled: true
+  guild_id: 0                 # right-click your server > Copy Server ID (enable Developer Mode first)
+  owner_user_id: 0            # your own user ID: DM the bot and it answers as Malice
+  default_channel: general
+  watch_channels: []          # empty = every channel the bot can read
+  alert_keywords: [deadline, urgent, submit, today, tomorrow]
+
+whatsapp:
+  enabled: true
+  bridge_url: http://127.0.0.1:3777
+  group_name: GSA             # part of the group's name is enough
+  alert_keywords: [deadline, urgent, submit, form, today, tomorrow]
+
+safety:
+  confirm_email_send: true    # shows the exact email and waits for "yes"
+  confirm_discord_post: true
+  confirm_whatsapp_send: false  # you asked for auto-send in the GSA group
+  confirm_shell: true         # PowerShell commands outside the allowlist wait for "yes"
+  shell_allowlist: [Get-, dir, ls, pwd, whoami, hostname, ipconfig, systeminfo, tasklist, nvidia-smi, echo, Test-Connection, ping, date, where]
+  allowed_dirs: [~/Documents, ~/Desktop, ~/Downloads]
+
+scheduler:
+  enabled: true
+  poll_minutes: 15            # new GSA mail check
+  briefing_time: "08:30"      # spoken morning briefing (first start after this time, before 1pm)
+  speak_alerts: true
+
+server:
+  host: 127.0.0.1
+  port: 7777
+  open_window: true

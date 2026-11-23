@@ -339,7 +339,9 @@ async def cmd_doctor(args: argparse.Namespace) -> None:
             rows.append((False, "Gmail", str(e)))
     else:
         rows.append((False, "Gmail", "set GMAIL_ADDRESS + GMAIL_APP_PASSWORD in .env"))
-    if cfg.gmail.official_address:
+    if cfg.gmail.official_address and cfg.gmail.send_mode == "draft":
+        rows.append((True, "Official mail (sending)", f"{cfg.gmail.official_address}: drafts open in Gmail, no login needed"))
+    elif cfg.gmail.official_address:
         try:
             await asyncio.to_thread(lambda: rt.gmail._imap(rt.gmail.sender).logout())
             rows.append((True, "Official mail (sending)", cfg.gmail.official_address))

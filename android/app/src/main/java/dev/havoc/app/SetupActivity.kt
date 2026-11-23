@@ -67,7 +67,9 @@ class SetupActivity : Activity() {
 
         col.addView(label("PC address (from Connections > Phone)"))
         gap(6)
-        val url = field("https://my-pc.tail1234.ts.net", prefs.serverUrl, InputType.TYPE_TEXT_VARIATION_URI)
+        // Builds made for you carry your PC's address (gradle -PhavocServer=...), so there's nothing to type.
+        val url = field("https://my-pc.tail1234.ts.net", prefs.serverUrl.ifBlank { BuildConfig.DEFAULT_SERVER },
+            InputType.TYPE_TEXT_VARIATION_URI)
         urlField = url
         col.addView(url)
         gap(14)

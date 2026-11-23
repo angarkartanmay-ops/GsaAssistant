@@ -11,8 +11,10 @@ android {
         applicationId = "dev.havoc.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.1.1"
+        // Optional: bake your PC's Tailscale address in, e.g. ./gradlew assembleRelease -PhavocServer=https://my-pc.tail1234.ts.net
+        buildConfigField("String", "DEFAULT_SERVER", "\"${(project.findProperty("havocServer") as String?).orEmpty()}\"")
         // Phones are ARM; dropping emulator-only x86 builds of the speech engine halves the APK.
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
@@ -34,6 +36,7 @@ android {
             signingConfig = signingConfigs.getByName("sideload")
         }
     }
+    buildFeatures { buildConfig = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

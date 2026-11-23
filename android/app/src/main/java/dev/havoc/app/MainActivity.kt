@@ -10,10 +10,13 @@ import android.os.Build
 import android.os.Bundle
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
+import android.text.TextUtils
 import android.webkit.PermissionRequest
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 
@@ -53,6 +56,15 @@ class MainActivity : Activity() {
                     startActivity(Intent(Intent.ACTION_VIEW, req.url)) // outside links open in the browser
                     return true
                 }
+                // PC off, asleep, HAVOC not running or Tailscale disconnected: say so plainly
+                // instead of showing Chrome's raw error page.
+                override fun onReceivedError(view: WebView, req: WebResourceRequest, err: WebResourceError) {
+                    if (req.isForMainFrame) showOffline(view, err.description?.toString().orEmpty())
+                }
+                override fun onReceivedHttpError(view: WebView, req: WebResourceRequest, resp: WebResourceResponse) {
+                    // Tailscale answers 502 when the PC is up but HAVOC isn't running.
+                    if (req.isForMainFrame && resp.statusCode >= 500) showOffline(view, "HAVOC isn't running on the PC (${resp.statusCode}).")
+                }
                 override fun onPageFinished(view: WebView, url: String) {
                     CookieManager.getInstance().flush()
                     // Keep the native copy of the session fresh for the wake-word service.
@@ -83,6 +95,26 @@ class MainActivity : Activity() {
         setContentView(web)
         web.loadUrl(prefs.serverUrl + "/")
         if (prefs.wakeEnabled) WakeWordService.start(this)
+    }
+
+    private fun showOffline(view: WebView, detail: String) {
+        val address = TextUtils.htmlEncode(prefs.serverUrl)
+        val why = TextUtils.htmlEncode(detail)
+        val html = """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{margin:0;min-height:100vh;display:flex;flex-direction:column;justify-content:center;gap:16px;padding:28px;
+box-sizing:border-box;background:#0c0d10;color:#e8eaef;font:16px/1.55 sans-serif}
+.b{font:600 14px monospace;letter-spacing:.34em}h1{margin:0;font-size:22px}p{margin:0;color:#8a909c}
+ul{margin:0;padding-left:20px;color:#8a909c}li{margin:4px 0}code{color:#e8eaef;word-break:break-all}
+button{padding:14px;border:0;border-radius:12px;font:600 15px sans-serif}
+.p{background:#5cb4d9;color:#0c0d10}.s{background:#121419;color:#e8eaef;border:1px solid rgba(255,255,255,.1)}</style></head>
+<body><div class="b">H.A.V.O.C.</div><h1>Your PC isn't answering, Sir.</h1>
+<p>HAVOC's brain runs on your laptop. Check that:</p>
+<ul><li>the laptop is on and awake</li><li>HAVOC is running there (start.bat)</li>
+<li>Tailscale is connected on the laptop <b>and</b> this phone</li></ul>
+<p>Trying: <code>$address</code></p><p style="font-size:13px">$why</p>
+<button class="p" onclick="HavocNative.retry()">Try again</button>
+<button class="s" onclick="HavocNative.openSettings()">Phone settings</button></body></html>"""
+        view.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
     }
 
     private fun hasMic() = checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
@@ -123,7 +155,8 @@ class MainActivity : Activity() {
 
     /** Exposed to the HUD as window.HavocNative (see ui/src/lib/api.ts). */
     inner class NativeBridge {
-        @JavascriptInterface fun appVersion(): String = BuildConfigShim.VERSION
+        @JavascriptInterface fun appVersion(): String = BuildConfig.VERSION_NAME
+        @JavascriptInterface fun retry() = runOnUiThread { web.loadUrl(prefs.serverUrl + "/") }
         @JavascriptInterface fun isWakeEnabled(): Boolean = prefs.wakeEnabled
         @JavascriptInterface fun openSettings() = runOnUiThread { startActivity(Intent(this@MainActivity, SetupActivity::class.java)) }
         @JavascriptInterface fun setWakeEnabled(on: Boolean) = runOnUiThread {
@@ -143,6 +176,3 @@ class MainActivity : Activity() {
         private const val REQ_WAKE = 13
     }
 }
-
-/** Version string without enabling BuildConfig generation. */
-object BuildConfigShim { const val VERSION = "1.1.0" }

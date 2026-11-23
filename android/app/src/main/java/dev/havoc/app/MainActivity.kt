@@ -145,4 +145,4 @@ class MainActivity : Activity() {
 }
 
 /** Version string without enabling BuildConfig generation. */
-object BuildConfigShim { const val VERSION = "1.0.0" }
+object BuildConfigShim { const val VERSION = "1.1.0" }

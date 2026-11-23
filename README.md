@@ -57,7 +57,8 @@ The PC does the thinking, so **it has to be on and awake**; the setup offers to 
    PC in to Tailscale, a free private network between your own devices, and publishes HAVOC at an
    address like `https://my-pc.tail1234.ts.net`. Only devices signed in to *your* Tailscale can open it.
 2. On the phone: install **Tailscale** from the Play Store and sign in with the same account.
-3. Install the **HAVOC APK**: open the file and allow "install unknown apps" for that one time.
+3. Install the **HAVOC APK**: on the phone open `https://<your-pc>.ts.net/app` (Connections shows the
+   link), tap **Copy address**, then **Download**, and allow "install unknown apps" that one time.
 4. Open HAVOC, paste the PC address, enter the PIN. You get the same screen as on the PC.
 
 If Tailscale complains about HTTPS, turn on **HTTPS certificates** in the Tailscale admin console
@@ -120,7 +121,7 @@ icon has **Start with Windows**, the data folder and the log.
 ### Connect your accounts
 Open **Connections** (top right in HAVOC, on the PC). Everything is entered there and saved only on
 this PC. Passwords and tokens go into `.env` and are never shown again, not even in Connections.
-Connections can't be opened from the phone, so a lost phone can't read or swap your keys.
+Connections also works from your PIN-unlocked phone. Secrets are write-only either way: nothing ever reads them back out.
 
 | Account | What to do |
 |---|---|

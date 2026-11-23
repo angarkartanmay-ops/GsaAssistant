@@ -244,7 +244,7 @@ export function Connections({ onClose }: { onClose: () => void }) {
           <div>
             <h2 className="text-2xl font-semibold tracking-tight">Connections</h2>
             <p className="mt-1 max-w-[56ch] text-[13.5px] leading-relaxed text-fog-500">
-              Everything here is saved on this PC only. Passwords and tokens are written to <code className="font-mono text-fog-300">.env</code> and never shown again, not even to you.
+              Saved on your PC only, whether you edit here or from your PIN-unlocked phone. Passwords and tokens go to <code className="font-mono text-fog-300">.env</code> and are never shown again, not even to you.
             </p>
           </div>
           <button aria-label="Close" onClick={onClose} className="tactile rounded-xl p-2 text-fog-500 hover:bg-ink-800 hover:text-fog-100">
@@ -351,7 +351,13 @@ export function Connections({ onClose }: { onClose: () => void }) {
                   <button onClick={() => connect("phone")} className="tactile inline-flex items-center gap-2 self-start rounded-xl border border-white/[0.08] px-3.5 py-2.5 text-[13.5px] hover:bg-ink-800">
                     <DeviceMobile size={16} /> Set up phone access
                   </button>
-                  <p className="text-[12.5px] leading-relaxed text-fog-500">Signs this PC in to Tailscale (free) and publishes HAVOC privately. Then install Tailscale and the HAVOC app on your phone with the same account. The result shows up under Alerts.</p>
+                  <p className="text-[12.5px] leading-relaxed text-fog-500">Signs this PC in to Tailscale (free) and publishes HAVOC privately. Then install Tailscale on your phone with the same account. The result shows up under Alerts.</p>
+                  {view.phone_url && (
+                    <p className="text-[13px] leading-relaxed text-fog-300">
+                      Get the app: on your phone (with Tailscale on) open{" "}
+                      <a className="font-mono text-signal underline-offset-2 hover:underline" href={`${view.phone_url}/app`} target="_blank" rel="noreferrer">{view.phone_url}/app</a>
+                    </p>
+                  )}
                 </div>
               </Group>
               <div className="h-6" />

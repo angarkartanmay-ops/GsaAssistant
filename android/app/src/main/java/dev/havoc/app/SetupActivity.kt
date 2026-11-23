@@ -24,6 +24,7 @@ import kotlin.concurrent.thread
 /** First run + phone settings: where the PC is, the PIN, and "Hey Havoc". Built in code, no XML. */
 class SetupActivity : Activity() {
     private lateinit var prefs: Prefs
+    private var urlField: EditText? = null
     private val ink = 0xFF0C0D10.toInt()
     private val panel = 0xFF121419.toInt()
     private val fog = 0xFFE8EAEF.toInt()
@@ -67,6 +68,7 @@ class SetupActivity : Activity() {
         col.addView(label("PC address (from Connections > Phone)"))
         gap(6)
         val url = field("https://my-pc.tail1234.ts.net", prefs.serverUrl, InputType.TYPE_TEXT_VARIATION_URI)
+        urlField = url
         col.addView(url)
         gap(14)
         col.addView(label("PIN"))
@@ -134,6 +136,19 @@ class SetupActivity : Activity() {
             prefs.onlyWhileCharging = on
             if (prefs.wakeEnabled) WakeWordService.start(this) // re-reads the setting
         }
+    }
+
+    /** The download page has a "Copy address" button; pick that address up so nothing needs typing.
+     *  (Android only lets the focused app read the clipboard, hence here and not in onCreate.) */
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        val field = urlField ?: return
+        if (!hasFocus || field.text.isNotBlank()) return
+        val clip = runCatching {
+            (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager).primaryClip
+                ?.getItemAt(0)?.coerceToText(this)?.toString()?.trim()
+        }.getOrNull() ?: return
+        if (Regex("^https://[a-z0-9-]+(\\.[a-z0-9-]+)*\\.ts\\.net/?$").matches(clip)) field.setText(clip.trimEnd('/'))
     }
 
     private fun permissionsOk(): Boolean {

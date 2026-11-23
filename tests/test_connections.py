@@ -69,14 +69,35 @@ def test_settings_validation(clients):
     assert pc.post("/api/settings", json={"fields": {"gmail.address": "not-an-email"}}).status_code == 400
 
 
-def test_connections_are_pc_only(clients):
-    _, _, phone, restarted = clients
-    assert phone.get("/api/settings").status_code == 403
-    assert phone.post("/api/settings", json={"secrets": {"server.pin": "0000"}}).status_code == 403
-    assert phone.post("/api/restart").status_code == 403
-    assert phone.post("/api/connect/dashboard").status_code == 403
-    assert restarted == []
+def test_connections_from_the_unlocked_phone(clients, home, tmp_path):
+    from fastapi.testclient import TestClient
+    rt, pc, phone, _ = clients
+    # The PIN-unlocked phone can connect accounts...
+    r = phone.post("/api/settings", json={"secrets": {"discord.token": "from.the.phone"}})
+    assert r.status_code == 200, r.text
+    assert "DISCORD_BOT_TOKEN=from.the.phone" in (home / ".env").read_text()
+    # ...but secrets still never come back out.
+    assert "from.the.phone" not in phone.get("/api/settings").text
     assert phone.get("/api/me").json()["local"] is False
+    # A phone without the PIN gets nothing.
+    stranger = TestClient(phone.app, base_url=f"https://{TS}")
+    assert stranger.get("/api/settings").status_code == 401
+    assert stranger.post("/api/settings", json={"secrets": {"server.pin": "0000"}}).status_code == 401
+
+
+def test_app_download_page_is_reachable_before_login(clients, monkeypatch, tmp_path):
+    from fastapi.testclient import TestClient
+    import havoc.server.app as server_app
+    apk = tmp_path / "HAVOC.apk"
+    apk.write_bytes(b"PK\x03\x04fake")
+    monkeypatch.setattr(server_app, "APK", apk)
+    _, _, phone, _ = clients
+    fresh = TestClient(phone.app, base_url=f"https://{TS}")
+    page = fresh.get("/app")
+    assert page.status_code == 200 and f"https://{TS}" in page.text and "/app/havoc.apk" in page.text
+    r = fresh.get("/app/havoc.apk")
+    assert r.status_code == 200 and r.headers["content-type"] == "application/vnd.android.package-archive"
+    assert fresh.get("/app", headers={"host": "evil.example"}).status_code == 403
 
 
 def test_restart_from_pc(clients):

@@ -11,17 +11,27 @@ android {
         applicationId = "dev.havoc.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
         // Phones are ARM; dropping emulator-only x86 builds of the speech engine halves the APK.
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
 
+    // A fixed key committed with the repo: every build (here, your PC, GitHub Actions) signs the
+    // same way, so a new APK installs over the old one. Fine for a personal sideloaded app; never
+    // reuse this key for anything published.
+    signingConfigs {
+        create("sideload") {
+            storeFile = rootProject.file("havoc-sideload.keystore")
+            storePassword = "havoc-sideload"
+            keyAlias = "havoc"
+            keyPassword = "havoc-sideload"
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = false
-            // Personal sideloaded app: sign the release with the debug key so it installs directly.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("sideload")
         }
     }
     compileOptions {

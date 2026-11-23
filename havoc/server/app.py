@@ -17,12 +17,15 @@ from fastapi.staticfiles import StaticFiles
 
 from .. import config as config_mod
 from ..brain.persona import GREETINGS
-from ..config import inbox_dir
+from ..config import ROOT, inbox_dir
 from .auth import COOKIE, LOGIN_HTML, SESSION_DAYS, Gate
 
 log = logging.getLogger("havoc.server")
 STATIC = Path(__file__).parent / "static"
-PUBLIC = ("/login", "/manifest.json", "/sw.js", "/static/")
+# Reachable before the PIN (still only via localhost or your own Tailscale): the login page, the
+# app manifest/icons, and the phone app download, which you need before you can log in.
+PUBLIC = ("/login", "/manifest.json", "/sw.js", "/static/", "/app")
+APK = ROOT / "releases" / "HAVOC.apk"
 MAX_UPLOAD = 25 * 1024 * 1024  # Discord's attachment limit
 FORWARD_HEADERS = ("x-forwarded-for", "x-forwarded-host", "forwarded", "tailscale-user-login")
 
@@ -100,14 +103,32 @@ def create_app(rt: Any, gate: Optional[Gate] = None, on_restart: Optional[Any] =
         return gate.is_local(request.headers.get("host", "")) and not _forwarded(request.headers)
 
     def pc_only(request: Request) -> Optional[JSONResponse]:
-        if not is_local_request(request):
-            return JSONResponse({"error": "Connections can only be changed on the PC itself."}, status_code=403)
+        # Connections work from the PC and from your PIN-unlocked phone (the guard middleware has
+        # already rejected anything else). Secrets stay write-only: they're never sent back out.
         return None
 
     @app.get("/")
     async def index() -> FileResponse:
         app_index = STATIC / "app" / "index.html"
         return FileResponse(app_index if app_index.exists() else STATIC / "index.html")
+
+    @app.get("/app")
+    async def app_page(request: Request) -> HTMLResponse:
+        host = request.headers.get("host", "")
+        address = f"https://{host}" if gate.is_allowed_remote(host) else (
+            f"https://{rt.cfg.server.remote_hosts[0]}" if rt.cfg.server.remote_hosts else "")
+        ready = APK.exists()
+        return HTMLResponse(APP_PAGE.format(
+            address=address or "(set up phone access in Connections first)",
+            size=f"{APK.stat().st_size / 2**20:.0f} MB" if ready else "",
+            download='<a class="btn" href="/app/havoc.apk">Download HAVOC.apk</a>' if ready
+            else '<p class="err">The APK isn\'t on this PC yet. Run <code>git pull</code> in the HAVOC folder.</p>'))
+
+    @app.get("/app/havoc.apk")
+    async def app_apk() -> Response:
+        if not APK.exists():
+            return JSONResponse({"error": "APK not found; git pull in the HAVOC folder"}, status_code=404)
+        return FileResponse(APK, media_type="application/vnd.android.package-archive", filename="HAVOC.apk")
 
     @app.get("/classic")
     async def classic() -> FileResponse:
@@ -308,6 +329,39 @@ def create_app(rt: Any, gate: Optional[Gate] = None, on_restart: Optional[Any] =
             rt.bus.unsubscribe(q)
 
     return app
+
+
+APP_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>HAVOC for Android</title>
+<style>
+:root{{--bg:#0c0d10;--panel:#121419;--text:#e8eaef;--muted:#8a909c;--accent:#5cb4d9;--bad:#e06a70}}
+*{{box-sizing:border-box}}body{{margin:0;min-height:100dvh;background:var(--bg);color:var(--text);
+font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:28px 18px}}
+main{{max-width:460px;margin:0 auto;display:flex;flex-direction:column;gap:18px}}
+.brand{{font:600 15px ui-monospace,Consolas,monospace;letter-spacing:.34em}}
+h1{{font-size:24px;margin:0;letter-spacing:-.01em}}p{{margin:0;color:var(--muted)}}
+ol{{margin:0;padding-left:20px;color:var(--muted)}}li{{margin:6px 0}}b{{color:var(--text)}}
+.btn{{display:block;text-align:center;padding:15px;border-radius:14px;background:var(--accent);color:var(--bg);
+font-weight:700;text-decoration:none}}button{{padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.1);
+background:var(--panel);color:var(--text);font:inherit;width:100%}}code{{font-family:ui-monospace,monospace;color:var(--text)}}
+.addr{{background:var(--panel);border-radius:12px;padding:12px 14px;font:14px ui-monospace,monospace;word-break:break-all}}
+.err{{color:var(--bad)}}
+</style></head><body><main>
+<div class="brand">H.A.V.O.C.</div>
+<h1>Phone app</h1>
+<p>Same brain, same conversation as your PC, plus "Hey Havoc". {size}</p>
+{download}
+<div><p style="margin-bottom:6px">Your PC's address (the app fills it in if you copy it first):</p>
+<div class="addr" id="addr">{address}</div></div>
+<button onclick="navigator.clipboard.writeText(document.getElementById('addr').textContent.trim()).then(()=>this.textContent='Copied')">Copy address</button>
+<ol>
+<li>Tap <b>Copy address</b>, then <b>Download</b>.</li>
+<li>Open the file. If asked, allow your browser to <b>install unknown apps</b> (just this once).</li>
+<li>Open HAVOC, check the address, enter your <b>PIN</b>, tap Connect.</li>
+<li>Allow the microphone and notifications. Turn on <b>Hey Havoc</b> under Today.</li>
+</ol>
+<p>Updating later: download again and install over the top. Your settings stay.</p>
+</main></body></html>"""
 
 
 async def _enable_phone(rt: Any) -> None:
